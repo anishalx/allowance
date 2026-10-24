@@ -145,7 +145,8 @@ function StepView({ step }: { step: Step }) {
           <div className="mb-1 flex items-center gap-2 text-xs font-medium tracking-wide text-ink-2 uppercase">
             <Bot className="h-4 w-4" aria-hidden="true" /> Agent&apos;s report
           </div>
-          {step.text}
+          {/* Models write **bold** in reports; render it rather than showing the asterisks. */}
+          {step.text.split(/\*\*(.+?)\*\*/g).map((part, n) => (n % 2 ? <strong key={n}>{part}</strong> : part))}
         </div>
       );
     case 'error':
