@@ -14,15 +14,17 @@ export async function pushApprovalRequest(opts: {
   merchantName: string;
   amountCents: number;
   reason: string;
+  kind?: 'requests' | 'operations'; // purchases vs. business actions on the PayPal account
 }) {
   if (!opts.topic) return;
-  const base = `${appUrl()}/api/requests/${opts.requestId}/decision?token=${opts.approvalToken}`;
+  const kind = opts.kind ?? 'requests';
+  const base = `${appUrl()}/api/${kind}/${opts.requestId}/decision?token=${opts.approvalToken}`;
   try {
     await fetch(`https://ntfy.sh/${encodeURIComponent(opts.topic)}`, {
       method: 'POST',
       signal: AbortSignal.timeout(8_000),
       headers: {
-        Title: `${opts.agentName} wants to spend ${formatUsd(opts.amountCents)}`,
+        Title: kind === 'requests' ? `${opts.agentName} wants to spend ${formatUsd(opts.amountCents)}` : `${opts.agentName} wants to act on your PayPal: ${formatUsd(opts.amountCents)}`,
         Tags: 'moneybag',
         Priority: 'high',
         Click: `${appUrl()}/approve/${opts.requestId}?token=${opts.approvalToken}`,

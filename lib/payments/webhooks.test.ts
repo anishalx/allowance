@@ -63,6 +63,16 @@ describe('PayPal webhook handling', () => {
     expect(pantry.status).toBe('frozen');
   });
 
+  it('keeps a purchase paid after a partial refund', async () => {
+    const event = {
+      id: 'WH-2b',
+      event_type: 'PAYMENT.CAPTURE.REFUNDED',
+      resource: { id: 'REFUND0', amount: { value: '1.00' }, links: [{ rel: 'up', href: `https://api-m.sandbox.paypal.com/v2/payments/captures/${CAPTURE_ID}` }] },
+    };
+    await handleWebhook(event, true);
+    expect((await request()).status).toBe('paid');
+  });
+
   it('marks a refund reported by PayPal', async () => {
     const event = {
       id: 'WH-3',

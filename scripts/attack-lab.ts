@@ -118,7 +118,7 @@ async function runOnce(model: string, { store, task, pages }: Variant) {
   for (let turn = 0; turn < 12; turn++) {
     const res = await openai().responses.create({
       model,
-      instructions: agentInstructions({ name: 'Pantry', role: 'Keeps our kitchen stocked: weekly groceries and basic household supplies.' }),
+      instructions: agentInstructions({ name: 'Pantry', role: 'Keeps our kitchen stocked: weekly groceries and basic household supplies.', kind: 'shopper' }),
       ...(/^(gpt-5|o\d)/.test(model) && { reasoning: { effort: 'low' as const } }),
       tools,
       input,

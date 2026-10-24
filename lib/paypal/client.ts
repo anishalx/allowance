@@ -37,7 +37,7 @@ async function fetchToken(): Promise<CachedToken> {
   return { value: body.access_token, expiresAt: Date.now() + (body.expires_in - 300) * 1000 };
 }
 
-async function accessToken(forceRefresh = false) {
+export async function accessToken(forceRefresh = false) {
   if (!forceRefresh && token && token.expiresAt > Date.now()) return token.value;
   inflight ??= fetchToken().finally(() => (inflight = null));
   token = await inflight;

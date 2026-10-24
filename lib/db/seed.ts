@@ -1,3 +1,4 @@
+import type { OpsPolicy } from '../ops/schema';
 import type { Policy } from '../policy/schema';
 import { generateAgentKey } from '../agents/keys';
 import type { Db } from './index';
@@ -76,6 +77,26 @@ const scoutPolicy: Policy = {
   notes: ['Ask before starting any recurring subscription.', 'Never buy physical goods.'],
 };
 
+// Business agents operate our PayPal account; they can't buy anything themselves.
+const noPurchasesPolicy: Policy = {
+  summary: 'This agent cannot make purchases.',
+  currency: 'USD',
+  limits: { perPurchaseMax: 0, daily: 0, weekly: 0, monthly: 0 },
+  approval: { requireAbove: null, newMerchants: true },
+  categories: { allowed: [], blocked: [...SAFETY_BLOCKS], approvalRequired: [], budgets: [] },
+  merchants: { allowed: [], blocked: [] },
+  quietHours: null,
+  notes: [],
+};
+
+const helpdeskOps: OpsPolicy = {
+  summary: 'Helpdesk may refund up to $25 per refund and $60 a day on recent orders, invoice existing customers up to $200, and never accept disputes.',
+  refunds: { enabled: true, perRefundMax: 25, dailyMax: 60, requireAbove: null, maxOrderAgeDays: 30, fullRefundsNeedApproval: true },
+  invoices: { enabled: true, perInvoiceMax: 200, dailyCount: 5, requireAbove: 100, onlyExistingCustomers: true },
+  disputes: { acceptClaims: 'never' },
+  notes: ['Only refund the customer who paid for the order.'],
+};
+
 const AGENTS = [
   {
     id: 'a_pantry',
@@ -90,6 +111,16 @@ const AGENTS = [
     role: 'Research assistant: buys the ebooks, courses and software tools I need for work.',
     mandateText: 'Books, courses and software up to $40 per purchase and $120 a month. Ask me before any subscription. Never physical goods.',
     policy: scoutPolicy,
+  },
+  {
+    id: 'a_helpdesk',
+    name: 'Helpdesk',
+    kind: 'business' as const,
+    role: 'Customer support for our store: answers customer emails and handles refunds and invoices on our PayPal business account.',
+    mandateText:
+      'Refunds up to $25 each and $60 a day, only for orders from the last 30 days, and ask me before any full refund. Invoices up to $200, only to existing customers, and ask me above $100. Never accept a dispute claim.',
+    policy: noPurchasesPolicy,
+    opsPolicy: helpdeskOps,
   },
 ];
 

@@ -52,9 +52,15 @@ export async function handleWebhook(event: WebhookEvent, verified: boolean) {
     case 'PAYMENT.CAPTURE.REFUNDED': {
       const captureId = r.links?.find((l: { rel: string }) => l.rel === 'up')?.href?.split('/').pop();
       const req = await byCapture(captureId);
-      if (req && req.status !== 'refunded') {
-        await db.update(paymentRequests).set({ status: 'refunded', refundId: r.id }).where(eq(paymentRequests.id, req.id));
-        await record({ userId: req.userId, agentId: req.agentId, requestId: req.id, type: 'payment.refunded', message: `PayPal reports ${formatUsd(req.amountCents)} refunded.`, data: { status: 'refunded' } });
+      const refundedCents = r.amount?.value ? Math.round(Number(r.amount.value) * 100) : req?.amountCents;
+      if (req && req.status !== 'refunded' && refundedCents !== undefined) {
+        if (refundedCents >= req.amountCents) {
+          await db.update(paymentRequests).set({ status: 'refunded', refundId: r.id }).where(eq(paymentRequests.id, req.id));
+          await record({ userId: req.userId, agentId: req.agentId, requestId: req.id, type: 'payment.refunded', message: `PayPal reports ${formatUsd(req.amountCents)} refunded.`, data: { status: 'refunded' } });
+        } else {
+          // A partial refund (e.g. a support agent refunding one broken item) leaves the purchase paid.
+          await record({ userId: req.userId, agentId: req.agentId, requestId: req.id, type: 'payment.partially_refunded', message: `PayPal reports ${formatUsd(refundedCents)} of ${formatUsd(req.amountCents)} refunded.` });
+        }
       }
       break;
     }

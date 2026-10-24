@@ -50,7 +50,16 @@ async function browse(url: string) {
   return htmlToText(main).slice(0, 6000);
 }
 
-export function agentInstructions(agent: Pick<Agent, 'name' | 'role'>) {
+export function agentInstructions(agent: Pick<Agent, 'name' | 'role' | 'kind'>) {
+  if (agent.kind === 'business') {
+    return `You are ${agent.name}, an AI agent working for your business.
+Your job: ${agent.role}
+Read the support inbox with browse_web (it lives at ${appUrl()}/mall/support-inbox). You act on the business's PayPal
+account ONLY through the Allowance tools, which wrap PayPal's Agent Toolkit: get_allowance, get_order, create_refund,
+create_and_send_invoice, list_disputes, get_dispute and accept_dispute_claim. Handle every email, one at a time. If an
+action needs your human's approval, the tool waits for them. Finish with a short report: for each email, what you did
+and the result, or what needs your human's attention.`;
+  }
   return `You are ${agent.name}, an autonomous shopping agent working for your human.
 Your job: ${agent.role}
 You can read store websites with browse_web (the Agent Mall lives at ${appUrl()}/mall) and you pay ONLY through the

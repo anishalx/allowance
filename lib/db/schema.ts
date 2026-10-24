@@ -1,5 +1,6 @@
 import { integer, sqliteTable, text, index } from 'drizzle-orm/sqlite-core';
 import type { Category, Check, Decision, LineItem, Policy } from '../policy/schema';
+import type { OpKind, OpsPolicy } from '../ops/schema';
 import type { AuditVerdict } from '../ai/auditor';
 
 const id = () => text('id').primaryKey();
@@ -34,11 +35,13 @@ export const agents = sqliteTable('agents', {
   userId: text('user_id').notNull().references(() => users.id),
   name: text('name').notNull(),
   role: text('role').notNull(), // what the human says this agent is for; the auditor checks purchases against it
+  kind: text('kind', { enum: ['shopper', 'business'] }).notNull().default('shopper'), // business = operates our PayPal account
   status: text('status', { enum: ['active', 'frozen'] }).notNull().default('active'),
   apiKeyHash: text('api_key_hash').notNull(),
   apiKeyPrefix: text('api_key_prefix').notNull(),
   mandateText: text('mandate_text').notNull(),
   policy: text('policy', { mode: 'json' }).$type<Policy>().notNull(),
+  opsPolicy: text('ops_policy', { mode: 'json' }).$type<OpsPolicy | null>(),
   policyVersion: integer('policy_version').notNull().default(1),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -111,6 +114,38 @@ export const paymentRequests = sqliteTable(
   (t) => [index('requests_agent_idx').on(t.agentId, t.createdAt), index('requests_capture_idx').on(t.captureId)],
 );
 
+export const OPERATION_STATUSES = ['pending_approval', 'denied', 'expired', 'executing', 'done', 'failed'] as const;
+export type OperationStatus = (typeof OPERATION_STATUSES)[number];
+
+// A business agent's action on the merchant's PayPal account (via PayPal's Agent Toolkit), with its decision trace.
+export const operations = sqliteTable(
+  'operations',
+  {
+    id: id(),
+    userId: text('user_id').notNull().references(() => users.id),
+    agentId: text('agent_id').notNull().references(() => agents.id),
+    kind: text('kind').$type<OpKind>().notNull(),
+    paypalTool: text('paypal_tool').notNull(), // the Agent Toolkit tool that runs if allowed
+    args: text('args', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    target: text('target').notNull(), // human-readable: "capture 6AJ7… ($28.40, Oct 24)" or "invoice to a@b"
+    reason: text('reason').notNull(),
+    checks: text('checks', { mode: 'json' }).$type<Check[]>().notNull(),
+    engineDecision: text('engine_decision').$type<Decision>().notNull(),
+    audit: text('audit', { mode: 'json' }).$type<AuditVerdict | null>(),
+    decision: text('decision').$type<Decision>().notNull(),
+    decidedBy: text('decided_by', { enum: ['policy', 'auditor', 'human', 'timeout'] }).notNull(),
+    status: text('status', { enum: OPERATION_STATUSES }).notNull(),
+    approvalExpiresAt: integer('approval_expires_at', { mode: 'timestamp_ms' }),
+    approvalToken: text('approval_token'),
+    result: text('result', { mode: 'json' }).$type<Record<string, unknown> | null>(),
+    error: text('error'),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [index('operations_agent_idx').on(t.agentId, t.createdAt)],
+);
+
 export const events = sqliteTable(
   'events',
   {
@@ -141,4 +176,5 @@ export type Wallet = typeof wallets.$inferSelect;
 export type Agent = typeof agents.$inferSelect;
 export type Merchant = typeof merchants.$inferSelect;
 export type PaymentRequest = typeof paymentRequests.$inferSelect;
+export type Operation = typeof operations.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
