@@ -1,26 +1,113 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --canvas: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --ink: #10141b;
+  --ink-2: #4a5261;
+  --ink-3: #8a93a3;
+  --line: #e3e6eb;
+  --brand: #0a7a55;
+  --brand-ink: #ffffff;
+  --brand-soft: #e3f5ec;
+  --allow: #0a7a55;
+  --allow-soft: #e3f5ec;
+  --ask: #b45309;
+  --ask-soft: #fdf1df;
+  --deny: #c0362c;
+  --deny-soft: #fbe7e5;
+  --ai: #5b4bd6;
+  --ai-soft: #ece9fd;
+  --shadow: 0 1px 2px rgb(16 20 27 / 0.04), 0 4px 16px rgb(16 20 27 / 0.06);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --canvas: #0c0f14;
+    --surface: #141922;
+    --surface-2: #1b212c;
+    --ink: #eef1f6;
+    --ink-2: #aab2c0;
+    --ink-3: #6f7889;
+    --line: #262e3b;
+    --brand: #2fbf86;
+    --brand-ink: #062016;
+    --brand-soft: #12301f;
+    --allow: #3cc58f;
+    --allow-soft: #12301f;
+    --ask: #f0a43a;
+    --ask-soft: #33250f;
+    --deny: #f0675b;
+    --deny-soft: #3a1714;
+    --ai: #9d90ff;
+    --ai-soft: #231f45;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.3);
   }
 }
 
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-allow: var(--allow);
+  --color-allow-soft: var(--allow-soft);
+  --color-ask: var(--ask);
+  --color-ask-soft: var(--ask-soft);
+  --color-deny: var(--deny);
+  --color-deny-soft: var(--deny-soft);
+  --color-ai: var(--ai);
+  --color-ai-soft: var(--ai-soft);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --shadow-card: var(--shadow);
+}
+
+html {
+  background: var(--canvas);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ask) 45%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
+
+.pulse-ask {
+  animation: pulse-ring 1.6s ease-out infinite;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.slide-in {
+  animation: slide-in 0.25s ease-out both;
 }

@@ -1,14 +1,7 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { STORES, storeBySlug } from '@/lib/mall/catalog';
+import type { Store } from '@/lib/mall/catalog';
 
-export function generateStaticParams() {
-  return STORES.map((s) => ({ store: s.slug }));
-}
-
-export default async function StorePage({ params }: { params: Promise<{ store: string }> }) {
-  const store = storeBySlug((await params).store);
-  if (!store) notFound();
+export function StoreView({ store }: { store: Store }) {
   return (
     <main className="mx-auto max-w-4xl px-4 py-10">
       <header className="flex flex-wrap items-end justify-between gap-4">

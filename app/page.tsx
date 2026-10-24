@@ -1,69 +1,116 @@
-import Image from "next/image";
+import { ArrowRight, Bot, Gavel, Hand, Landmark, ScrollText, Send, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import Link from 'next/link';
+import { Logo } from '@/components/ui';
 
-export default function Home() {
+const PIPELINE = [
+  { icon: Bot, title: 'Agent asks', body: 'Any MCP agent calls request_payment with its cart and reason.', tone: 'bg-surface-2 text-ink-2' },
+  { icon: Gavel, title: 'Rules engine', body: 'Your plain-English rules, compiled to hard limits. Deterministic and unit-tested.', tone: 'bg-surface-2 text-ink' },
+  { icon: Sparkles, title: 'AI auditor', body: 'Checks intent: injection, payee swaps, items that don’t fit the job. Can only say “stricter”.', tone: 'bg-ai-soft text-ai' },
+  { icon: UserCheck, title: 'You, if needed', body: 'Bigger or unusual purchases ping your phone. One tap to approve.', tone: 'bg-ask-soft text-ask' },
+  { icon: Landmark, title: 'PayPal moves money', body: 'Vaulted wallet charged via Orders v2; merchant paid via Payouts.', tone: 'bg-allow-soft text-allow' },
+];
+
+const FEATURES = [
+  {
+    icon: ScrollText,
+    title: 'Rules in your words',
+    body: '“Groceries only, $60 a week, ask me over $25, never alcohol.” Allowance shows exactly how it understood you, and adds safety rules you’d want anyway.',
+  },
+  {
+    icon: ShieldAlert,
+    title: 'Safe even when the agent isn’t',
+    body: 'Agents read the web, and the web lies. A hijacked agent still can’t pick where money goes: payees come from a verified directory, and cash-equivalents are blocked.',
+  },
+  {
+    icon: Hand,
+    title: 'You stay in control',
+    body: 'Live activity, a full decision trace for every request, one-tap refunds, per-agent freeze, and a kill switch that deletes the PayPal vault token.',
+  },
+];
+
+export default function Landing() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="min-h-screen">
+      <header className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+        <div className="flex items-center gap-2 font-semibold tracking-tight">
+          <Logo /> Allowance
+        </div>
+        <nav className="flex items-center gap-2 text-sm">
+          <a href="https://github.com/anishalx/allowance" className="rounded-lg px-3 py-1.5 text-ink-2 hover:text-ink">
+            GitHub
+          </a>
+          <Link href="/dashboard" className="rounded-lg bg-ink px-3 py-1.5 font-medium text-canvas hover:opacity-90">
+            Open dashboard
+          </Link>
+        </nav>
+      </header>
+
+      <section className="mx-auto max-w-6xl px-4 pt-16 pb-12 md:pt-24">
+        <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-xs text-ink-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-allow" /> Built on PayPal Vault, Orders, Payouts &amp; Webhooks
+        </p>
+        <h1 className="mt-6 max-w-3xl text-4xl leading-[1.05] font-semibold tracking-tight md:text-6xl">
+          Give your AI agents an allowance, <span className="text-brand">not your password.</span>
+        </h1>
+        <p className="mt-6 max-w-2xl text-lg text-ink-2">
+          Agents can shop for you now. Allowance lets any agent pay with your PayPal, within rules you write in plain English, checked by an AI auditor, with you one tap away.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/playground" className="inline-flex h-12 items-center gap-2 rounded-xl bg-ink px-6 font-medium text-canvas hover:opacity-90">
+            Watch an attack get stopped <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+          <Link href="/dashboard" className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-surface px-6 font-medium hover:bg-surface-2">
+            Open the dashboard
+          </Link>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <h2 className="text-sm font-semibold tracking-wide text-ink-2 uppercase">Every purchase, every time</h2>
+        <ol className="mt-5 grid gap-3 md:grid-cols-5">
+          {PIPELINE.map(({ icon: Icon, title, body, tone }, i) => (
+            <li key={title} className="relative rounded-2xl border border-line bg-surface p-4 shadow-card">
+              <div className={`inline-flex rounded-lg p-2 ${tone}`}>
+                <Icon className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div className="mt-3 text-sm font-semibold">
+                <span className="text-ink-3">{i + 1}.</span> {title}
+              </div>
+              <p className="mt-1 text-sm text-ink-2">{body}</p>
+              {i < PIPELINE.length - 1 && <ArrowRight className="absolute top-1/2 -right-3 z-10 hidden h-5 w-5 -translate-y-1/2 text-ink-3 md:block" aria-hidden="true" />}
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="mx-auto grid max-w-6xl gap-4 px-4 py-12 md:grid-cols-3">
+        {FEATURES.map(({ icon: Icon, title, body }) => (
+          <div key={title} className="rounded-2xl border border-line bg-surface p-6 shadow-card">
+            <Icon className="h-6 w-6 text-brand" aria-hidden="true" />
+            <h3 className="mt-4 font-semibold">{title}</h3>
+            <p className="mt-2 text-sm text-ink-2">{body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-12">
+        <div className="rounded-3xl bg-ink p-8 text-canvas md:p-12">
+          <h2 className="text-2xl font-semibold md:text-3xl">Works with the agent you already use</h2>
+          <p className="mt-3 max-w-2xl opacity-80">
+            Allowance is a remote MCP server. Add it to Claude Code, Cursor, Claude Desktop or the OpenAI Responses API with one line, and each agent gets its own key and its own limits.
           </p>
+          <pre className="mt-6 overflow-x-auto rounded-xl bg-white/10 p-4 font-mono text-sm">
+            claude mcp add --transport http allowance https://…/api/mcp --header &quot;Authorization: Bearer alw_…&quot;
+          </pre>
+          <Link href="/connect" className="mt-6 inline-flex items-center gap-2 font-medium underline-offset-4 hover:underline">
+            Connect an agent <Send className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </section>
+
+      <footer className="mx-auto max-w-6xl px-4 py-10 text-sm text-ink-3">
+        Built for the PayPal AI Hackathon · PayPal sandbox only, no real money moves · MIT licensed
+      </footer>
     </div>
   );
 }
