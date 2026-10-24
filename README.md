@@ -53,10 +53,10 @@ Budgets, approval thresholds, a human one tap away, and easy refunds: that is th
 
 ## Try it in two minutes
 
-Open the **[live demo](https://allowance-ft4z.onrender.com)**. It's a shared demo household with a sandbox PayPal wallet already linked.
+Open the **[live demo](https://allowance-ft4z.onrender.com)**. Your browser gets its own private demo household with a sandbox PayPal wallet already linked, so nothing you try affects anyone else. **Start over** puts it back the way it began.
 
 1. **Watch an attack get stopped.** Go to [Agent playground](https://allowance-ft4z.onrender.com/playground), pick **Payee-swap attack**, press **Run**. Harvest Lane Market's site has been "hacked" to say its payments moved to a new PayPal account ([see it](https://allowance-ft4z.onrender.com/mall/harvestlane)). The agent usually believes it and asks to pay "HarvestLane Pay". The rules engine flags a lookalike payee (which alone would only ask you); the AI auditor recognizes payment redirection and blocks it outright. If the agent sees through it on its own, run it again or pick GPT-5.4 mini in the model picker.
-2. **Approve a real purchase.** Press **Reset demo data**, pick **Weekly groceries**, press **Run**. The first order at a store needs your approval: an approval card appears on the right. Press **Approve & pay**; the PayPal wallet is charged and FreshCart is paid via Payouts.
+2. **Approve a real purchase.** The demo you open is private to your browser, so nothing you do affects anyone else. Pick **Weekly groceries**, press **Run**. The first order at a store needs your approval: an approval card appears on the right. Press **Approve & pay**; the PayPal wallet is charged and FreshCart is paid via Payouts.
 3. **See how every decision was made.** Open the [Dashboard](https://allowance-ft4z.onrender.com/dashboard) and click any purchase for the full decision trace: every rule, the auditor's verdict and red flags, who decided, and the PayPal order, capture and payout IDs.
 4. **Ask the Guardian.** Open the [Console](https://allowance-ft4z.onrender.com/console) and try "Why was anything blocked?", "Reconcile with PayPal" or "Lower Pantry's weekly limit to $40" (you'll be asked to confirm).
 5. **Watch a business agent work its inbox.** In the playground, pick **Support inbox (business agent)** and GPT-5.4 mini, then press **Run**. Helpdesk reads four customer emails and acts through PayPal's Agent Toolkit: a $5.82 partial refund runs, a stranger's "I was charged twice, refund in full" (with an injected note for AI assistants) is blocked, a $1,395 invoice to a non-customer is blocked, and a $35.97 invoice to a real customer is sent.
@@ -253,12 +253,25 @@ components/               UI, including the AG Studio console
 scripts/                  sandbox spike and end-to-end scripts
 ```
 
-## Limitations and the road to production
+## How money would move in production
 
-- **One shared demo household, no accounts.** Real deployments need user auth; the data model is already per-user.
-- **Charge-then-payout makes Allowance the merchant of record.** In production, PayPal's agentic rails (Agent Ready delegated tokens, AP2-style mandates) or multiparty onboarding would route payments straight to sellers. Allowance's rules, auditor and approvals sit in front of any of them unchanged.
-- **Refunds return money from the platform;** clawing it back from the merchant is out of scope.
-- **Sandbox quirks.** Transaction Search and webhook delivery can lag behind live captures; payouts are also settled by polling.
+The demo routes money the only way PayPal's sandbox allows a hackathon entrant to: Allowance charges the buyer's vaulted wallet as the merchant, then pays the store with Payouts. That makes Allowance hold the buyer's money for a moment and be the merchant of record. That's fine in a sandbox. In production it would be wrong: holding other people's money generally needs money-transmitter licensing, and the platform would carry every chargeback.
+
+So in production Allowance never touches the money. It is the authorization layer in front of PayPal, and PayPal moves funds directly from buyer to seller:
+
+| Path | How money moves | Status |
+| --- | --- | --- |
+| **Business agents** | The agent acts on the business's own PayPal account through PayPal's Agent Toolkit. Allowance only decides whether each refund, invoice or dispute action may run. | Production-shaped today |
+| **Multiparty (PayPal Commerce Platform)** | Sellers onboard with PayPal (Partner Referrals), and each order names the seller as payee, so funds go buyer → seller in one PayPal transaction. PayPal handles seller verification, buyer protection and disputes, and Allowance can take a platform fee. | Needs PayPal partner approval |
+| **PayPal's agentic rails** | When an agent pays through PayPal's agentic checkout, Allowance supplies the scoped permission (the mandate) and the approval. | Request-access only during the hackathon |
+
+None of these changes Allowance itself: the rules engine, AI auditor, phone approvals, MCP tools and decision trail sit in front of whichever rail moves the money. We found the vault limit the hard way: a vaulted token is scoped to the merchant that saved it, so charging it straight to another seller fails with `BILLING_AGREEMENT_NOT_FOUND`.
+
+Other limitations:
+
+- **Demo households, not accounts.** Each visitor to the hosted demo gets a private household (its own agents, rules, history and kill switch) that spends from one shared sandbox wallet. A visitor's kill switch only unlinks that wallet for them; it never deletes the real Vault token. Real deployments need user sign-in, and the data model is already per-user.
+- **Refunds return money from the platform;** taking it back from the merchant is out of scope.
+- **Sandbox quirks.** Transaction Search and webhook delivery can lag behind live captures, so payouts are also settled by polling.
 
 ## License
 
