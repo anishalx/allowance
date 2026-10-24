@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, Gavel, Hand, Landmark, ScrollText, Send, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
+import { ArrowRight, Bot, Briefcase, Gavel, Hand, Landmark, ScrollText, Send, ShieldAlert, Sparkles, UserCheck } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/ui';
 
@@ -8,6 +8,27 @@ const PIPELINE = [
   { icon: Sparkles, title: 'AI auditor', body: 'Checks intent: injection, payee swaps, items that don’t fit the job. Can only say “stricter”.', tone: 'bg-ai-soft text-ai' },
   { icon: UserCheck, title: 'You, if needed', body: 'Bigger or unusual purchases ping your phone. One tap to approve.', tone: 'bg-ask-soft text-ask' },
   { icon: Landmark, title: 'PayPal moves money', body: 'Vaulted wallet charged via Orders v2; merchant paid via Payouts.', tone: 'bg-allow-soft text-allow' },
+];
+
+const STATS = [
+  {
+    value: '3%',
+    label: 'of people would let an AI agent pay without their final approval',
+    source: 'Ping Identity 2026 consumer survey, 11,000 people',
+    href: 'https://www.pingidentity.com/en/lp/4423-2026-consumer-survey-ai-trust.html',
+  },
+  {
+    value: '8 in 10',
+    label: 'times a GPT-5.5 shopping agent paid a forged "payments moved" payee',
+    source: "Allowance's attack lab",
+    href: 'https://github.com/anishalx/allowance#attack-lab',
+  },
+  {
+    value: '$1T',
+    label: 'US agentic commerce revenue projected by 2030',
+    source: 'ICSC and McKinsey',
+    href: 'https://www.retaildive.com/news/agentic-commerce-us-one-trillion-2030/818936/',
+  },
 ];
 
 const FEATURES = [
@@ -20,6 +41,11 @@ const FEATURES = [
     icon: ShieldAlert,
     title: 'Safe even when the agent isn’t',
     body: 'Agents read the web, and the web lies. A hijacked agent still can’t pick where money goes: payees come from a verified directory, and cash-equivalents are blocked.',
+  },
+  {
+    icon: Briefcase,
+    title: 'Guards your business account too',
+    body: 'Support agents can refund and invoice through PayPal’s own Agent Toolkit, with caps, a check that the requester actually paid, and you in the loop for anything big.',
   },
   {
     icon: Hand,
@@ -47,7 +73,7 @@ export default function Landing() {
 
       <section className="mx-auto max-w-6xl px-4 pt-16 pb-12 md:pt-24">
         <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-xs text-ink-2">
-          <span className="h-1.5 w-1.5 rounded-full bg-allow" /> Built on PayPal Vault, Orders, Payouts &amp; Webhooks
+          <span className="h-1.5 w-1.5 rounded-full bg-allow" /> Built on PayPal Vault, Orders, Payouts, Webhooks &amp; the Agent Toolkit
         </p>
         <h1 className="mt-6 max-w-3xl text-4xl leading-[1.05] font-semibold tracking-tight md:text-6xl">
           Give your AI agents an allowance, <span className="text-brand">not your password.</span>
@@ -63,6 +89,20 @@ export default function Landing() {
             Open the dashboard
           </Link>
         </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-4">
+        <ul className="grid gap-3 md:grid-cols-3">
+          {STATS.map((st) => (
+            <li key={st.value} className="rounded-2xl border border-line bg-surface p-5 shadow-card">
+              <div className="tabular text-3xl font-semibold tracking-tight text-brand">{st.value}</div>
+              <p className="mt-1 text-sm">{st.label}</p>
+              <a href={st.href} target="_blank" rel="noreferrer" className="mt-2 inline-block text-xs text-ink-3 underline-offset-2 hover:underline">
+                {st.source}
+              </a>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-12">
@@ -83,7 +123,7 @@ export default function Landing() {
         </ol>
       </section>
 
-      <section className="mx-auto grid max-w-6xl gap-4 px-4 py-12 md:grid-cols-3">
+      <section className="mx-auto grid max-w-6xl gap-4 px-4 py-12 md:grid-cols-2 lg:grid-cols-4">
         {FEATURES.map(({ icon: Icon, title, body }) => (
           <div key={title} className="rounded-2xl border border-line bg-surface p-6 shadow-card">
             <Icon className="h-6 w-6 text-brand" aria-hidden="true" />

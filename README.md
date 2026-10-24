@@ -19,6 +19,27 @@ AI agents can shop now. But the only ways to let one pay today are to hand it yo
 
 Agents also read the web, and the web lies. The oldest payment scam, "we've changed our bank details, please pay this new account", works on agents too. In our [attack lab](#attack-lab) an honest GPT-5.5 shopping agent followed a forged "payments moved" notice on a store page **8 times out of 10**, and a cheaper model fell for almost every injection we tried. You can't fix that by hoping the model resists; you fix it by not having to trust the model at all.
 
+## Why it matters
+
+**People want agents to shop for them, but only with limits and a final say.**
+
+- Accenture's 2026 Consumer Pulse (25,590 consumers, 16 countries): **32%** would let an AI agent make purchase decisions *within defined limits*, but only **9%** would let one complete purchases on its own. ([source](https://www.artificialintelligence-news.com/news/ai-shopping-agents-consumer-trust-accenture-report/))
+- Ping Identity's 2026 consumer survey (11,000 consumers, 12 countries): people would trust an agent with about **$200** for routine purchases, **42%** would cap it at $100 or less, and only **3%** would allow transactions without final approval. ([source](https://www.pingidentity.com/en/lp/4423-2026-consumer-survey-ai-trust.html))
+- RTB House (1,800+ shoppers in 4 countries): **42%** of US millennials would let agents buy within a $250 budget if returns are easy; **35%** of all shoppers want a human to review transactions first. ([source](https://www.retaildive.com/news/retail-shoppers-warm-up-agentic-ai-purchases/827563/))
+
+Budgets, approval thresholds, a human one tap away, and easy refunds: that is the product people are describing, and it's what Allowance builds on PayPal.
+
+**The market is arriving.** ICSC and McKinsey estimate US business-to-consumer agentic commerce could reach **$1 trillion in revenue by 2030**. ([source](https://www.retaildive.com/news/agentic-commerce-us-one-trillion-2030/818936/))
+
+**The threat is old, expensive, and now works on agents.** Business email compromise, including "we've changed our payment details" fraud, cost US victims **$3.05 billion** across 24,768 complaints in the FBI's 2025 IC3 report ([summary](https://redsift.com/blog/fbi-ic3-2025-report-email-fraud)). OWASP ranks prompt injection the **#1** risk for LLM applications (LLM01:2025). Our [attack lab](#attack-lab) shows the same payment-redirection trick fools a GPT-5.5 shopping agent 8 times in 10.
+
+**Who it's for**
+
+- **Households** delegating routine shopping: a grocery agent with $60 a week that asks before anything unusual.
+- **Developers** building agents that need to pay: one MCP server instead of handling cards, limits and approvals themselves.
+- **Small businesses** giving support agents PayPal powers through PayPal's Agent Toolkit: refunds and invoices with caps, payer checks and a human in the loop.
+- **PayPal**: a trust layer that makes agent payments on PayPal something people will actually switch on.
+
 ## What Allowance does
 
 - **Link PayPal once.** Your wallet is saved with **PayPal Vault**. Agents never see a login, card number or token.
