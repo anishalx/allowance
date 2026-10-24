@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import { db, dbReady } from './db';
 import { agents, events, merchants, operations, paymentRequests, users } from './db/schema';
 import { getOperation, opsSummary } from './ops/service';

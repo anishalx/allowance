@@ -9,7 +9,6 @@ import {
   merchants,
   paymentRequests,
   users,
-  wallets,
   type Agent,
   type MerchantSnapshot,
   type PaymentRequest,
@@ -164,6 +163,7 @@ export async function requestPayment(agent: Agent, raw: unknown): Promise<AgentP
     if (engine.checks.some((c) => c.rule.startsWith('agent.') || c.rule.startsWith('wallet.') || c.rule === 'merchant.payee')) engine.decision = 'deny';
 
     const audit = await auditRequest({
+      household: fresh.userId,
       agent: { name: fresh.name, role: fresh.role },
       mandateText: fresh.mandateText,
       policy: fresh.policy,

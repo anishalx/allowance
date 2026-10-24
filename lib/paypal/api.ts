@@ -1,9 +1,9 @@
 import { centsToValue, paypal } from './client';
+import type { Link, Order, PayoutBatch, Transaction } from './types';
 
 // Thin, typed wrappers over the PayPal REST calls Allowance makes. Vault and Payouts aren't in
 // @paypal/agent-toolkit, so everything goes through the same hardened client.
 
-type Link = { rel: string; href: string };
 
 // ── Vault v3: save the buyer's PayPal wallet once, with their consent ──────────────────────
 
@@ -53,7 +53,7 @@ export async function chargeVaultedWallet(opts: {
   items: ChargeItem[];
 }) {
   const money = (cents: number) => ({ currency_code: 'USD', value: centsToValue(cents) });
-  const order = await paypal<any>('POST', '/v2/checkout/orders', {
+  const order = await paypal<Order>('POST', '/v2/checkout/orders', {
     idempotencyKey: `charge-${opts.requestId}`,
     body: {
       intent: 'CAPTURE',
@@ -77,10 +77,10 @@ export async function chargeVaultedWallet(opts: {
   });
   const capture = order.purchase_units?.[0]?.payments?.captures?.[0];
   return {
-    orderId: order.id as string,
-    orderStatus: order.status as string,
-    captureId: capture?.id as string | undefined,
-    captureStatus: capture?.status as string | undefined,
+    orderId: order.id,
+    orderStatus: order.status,
+    captureId: capture?.id,
+    captureStatus: capture?.status,
   };
 }
 
@@ -120,12 +120,12 @@ export async function payMerchant(opts: { requestId: string; email: string; amou
 }
 
 export async function getPayoutBatch(batchId: string) {
-  const res = await paypal<any>('GET', `/v1/payments/payouts/${batchId}`);
+  const res = await paypal<PayoutBatch>('GET', `/v1/payments/payouts/${batchId}`);
   const item = res.items?.[0];
   return {
-    batchStatus: res.batch_header?.batch_status as string,
-    itemId: item?.payout_item_id as string | undefined,
-    itemStatus: item?.transaction_status as string | undefined,
+    batchStatus: res.batch_header?.batch_status,
+    itemId: item?.payout_item_id,
+    itemStatus: item?.transaction_status,
     feeCents: item?.payout_item_fee ? Math.round(Number(item.payout_item_fee.value) * 100) : undefined,
   };
 }
@@ -184,6 +184,6 @@ export async function searchTransactions(start: Date, end: Date) {
     fields: 'transaction_info,payer_info,cart_info',
     page_size: '100',
   });
-  const res = await paypal<{ transaction_details?: any[] }>('GET', `/v1/reporting/transactions?${params}`);
+  const res = await paypal<{ transaction_details?: Transaction[] }>('GET', `/v1/reporting/transactions?${params}`);
   return res.transaction_details ?? [];
 }

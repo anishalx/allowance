@@ -10,17 +10,18 @@ export function useDashboard() {
   const [live, setLive] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const refresh = useCallback(async () => {
-    try {
-      const res = await fetch('/api/state', { cache: 'no-store' });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error ?? res.statusText);
-      setState(body);
-      setError(null);
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }, []);
+  const refresh = useCallback(
+    () =>
+      fetch('/api/state', { cache: 'no-store' })
+        .then(async (res) => {
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error ?? res.statusText);
+          setState(body);
+          setError(null);
+        })
+        .catch((err: Error) => setError(err.message)),
+    [],
+  );
 
   useEffect(() => {
     refresh();

@@ -9,6 +9,7 @@ import { bus, record } from '../events';
 import { activeWallet } from '../households';
 import { pushApprovalRequest } from '../notify';
 import { paypal, PayPalError } from '../paypal/client';
+import type { Capture, Dispute, Order, Refund } from '../paypal/types';
 import { formatUsd, toCents } from '../policy/engine';
 import { evaluateOp } from './engine';
 import { callPayPalTool } from './paypal-tools';
@@ -49,14 +50,14 @@ export type OperationRequest =
 
 async function captureFacts(captureId: string): Promise<CaptureFacts | null> {
   try {
-    const cap = await paypal<any>('GET', `/v2/payments/captures/${encodeURIComponent(captureId)}`);
+    const cap = await paypal<Capture>('GET', `/v2/payments/captures/${encodeURIComponent(captureId)}`);
     // The parent order tells us who paid and what has already been refunded.
-    const orderHref: string | undefined = cap.links?.find((l: { rel: string }) => l.rel === 'up')?.href;
-    const order = orderHref ? await paypal<any>('GET', new URL(orderHref).pathname) : null;
+    const orderHref: string | undefined = cap.links?.find((l) => l.rel === 'up')?.href;
+    const order = orderHref ? await paypal<Order>('GET', new URL(orderHref).pathname) : null;
     let refundedCents = (order?.purchase_units ?? [])
-      .flatMap((u: any) => u.payments?.refunds ?? [])
-      .filter((r: any) => r.status === 'COMPLETED' || r.status === 'PENDING')
-      .reduce((sum: number, r: any) => sum + toCents(Number(r.amount.value)), 0);
+      .flatMap((u) => u.payments?.refunds ?? [])
+      .filter((r) => r.status === 'COMPLETED' || r.status === 'PENDING')
+      .reduce((sum, r) => sum + toCents(Number(r.amount.value)), 0);
     if (cap.status === 'REFUNDED') refundedCents = toCents(Number(cap.amount.value));
     const payerEmail: string | null = order?.payer?.email_address ?? order?.payment_source?.paypal?.email_address ?? null;
     return { id: cap.id, status: cap.status, amountCents: toCents(Number(cap.amount.value)), refundedCents, createdAt: new Date(cap.create_time), payerEmail };
@@ -68,8 +69,8 @@ async function captureFacts(captureId: string): Promise<CaptureFacts | null> {
 
 async function disputeFacts(disputeId: string) {
   try {
-    const d = await paypal<any>('GET', `/v1/customer/disputes/${encodeURIComponent(disputeId)}`);
-    return { status: d.status as string, amountCents: d.dispute_amount ? toCents(Number(d.dispute_amount.value)) : 0 };
+    const d = await paypal<Dispute>('GET', `/v1/customer/disputes/${encodeURIComponent(disputeId)}`);
+    return { status: d.status, amountCents: d.dispute_amount ? toCents(Number(d.dispute_amount.value)) : 0 };
   } catch (err) {
     if (err instanceof PayPalError && err.status === 404) return null;
     throw err;
@@ -187,6 +188,7 @@ export async function requestOperation(agent: Agent, request: OperationRequest) 
 
   const engine = evaluateOp(policy, op, now);
   const audit = await auditOperation({
+    household: fresh.userId,
     agent: { name: fresh.name, role: fresh.role },
     mandateText: fresh.mandateText,
     notes: policy.notes,
@@ -252,16 +254,17 @@ async function executeOperation(op: Operation): Promise<Operation> {
   try {
     let result: Record<string, unknown>;
     if (op.kind === 'refund') {
-      const r = await callPayPalTool<any>('create_refund', op.args);
+      const r = await callPayPalTool<Refund>('create_refund', op.args);
       result = { refundId: r.id, refundStatus: r.status };
     } else if (op.kind === 'invoice') {
-      const created = await callPayPalTool<any>('create_invoice', op.args);
-      const invoiceId: string | undefined = created.id ?? created.href?.split('/').pop();
+      // Depending on the API version PayPal returns the new invoice, or just a link to it.
+      const created = await callPayPalTool<{ id?: string; href?: string }>('create_invoice', op.args);
+      const invoiceId = created.id ?? created.href?.split('/').pop();
       if (!invoiceId) throw new Error('PayPal did not return an invoice id');
       await callPayPalTool('send_invoice', { invoice_id: invoiceId, send_to_recipient: true });
       result = { invoiceId, invoiceStatus: 'SENT' };
     } else {
-      const r = await callPayPalTool<any>('accept_dispute_claim', op.args);
+      const r = await callPayPalTool<{ links?: unknown[] }>('accept_dispute_claim', op.args);
       result = { disputeResponse: r?.links ? 'accepted' : r };
     }
     return transition(op, { status: 'done', result, approvalToken: null }, 'op.done', `PayPal Agent Toolkit ran ${op.paypalTool}: ${formatUsd(op.amountCents)} ${describeKind[op.kind]} done.`, result);

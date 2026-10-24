@@ -98,7 +98,7 @@ export async function getConsoleData() {
     paypalTransactions = (await searchTransactions(start, end)).map((t) => {
       const info = t.transaction_info ?? {};
       return {
-        id: info.transaction_id,
+        id: info.transaction_id ?? '',
         date: String(info.transaction_initiation_date ?? '').slice(0, 10),
         event_code: info.transaction_event_code ?? '',
         status: info.transaction_status ?? '',

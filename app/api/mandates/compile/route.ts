@@ -1,5 +1,7 @@
 import { z } from 'zod';
+import { spendAi } from '@/lib/ai/budget';
 import { compileMandate, compileOpsMandate } from '@/lib/ai/compiler';
+import { currentUserId } from '@/lib/dashboard';
 import { route } from '@/lib/http';
 import { rateLimited } from '@/lib/rate-limit';
 
@@ -15,5 +17,7 @@ export const POST = route(async (req: Request) => {
   const limited = rateLimited(req, 'compile', 10);
   if (limited) return limited;
   const input = CompileInput.parse(await req.json());
+  const overBudget = spendAi(await currentUserId(), 'compile');
+  if (overBudget) return Response.json({ error: overBudget }, { status: 429 });
   return Response.json(input.kind === 'business' ? await compileOpsMandate(input) : await compileMandate(input));
 });

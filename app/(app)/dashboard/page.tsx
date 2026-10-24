@@ -2,7 +2,7 @@
 
 import { Bell, Bot, Plus, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ActivityFeed } from '@/components/activity-feed';
 import { AgentCard } from '@/components/agent-card';
 import { Drawer } from '@/components/drawer';
@@ -11,6 +11,7 @@ import { ApprovalCard, DecisionTrace, MerchantLabel, RiskBadge } from '@/compone
 import { Card, SectionTitle, Spinner, StatusChip } from '@/components/ui';
 import { api, useDashboard } from '@/components/use-dashboard';
 import { WalletCard } from '@/components/wallet-card';
+import { useSearchParam } from '@/components/use-location';
 import { DemoBanner } from '@/components/demo-banner';
 import { timeAgo, usd } from '@/lib/format';
 
@@ -35,7 +36,6 @@ function PhonePush({ topic, onSaved }: { topic: string | null; onSaved: () => vo
   const [value, setValue] = useState(topic ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => setValue(topic ?? ''), [topic]);
   async function save() {
     setSaving(true);
     setError(null);
@@ -77,15 +77,11 @@ export default function DashboardPage() {
   const { state, error, live, refresh } = useDashboard();
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedOp, setSelectedOp] = useState<string | null>(null);
-  const [linkMsg, setLinkMsg] = useState<(typeof LINK_MESSAGES)[string] | null>(null);
+  // After PayPal sends the human back from linking a wallet (?link=ok|failed|missing).
+  const link = useSearchParam('link');
+  const [linkDismissed, setLinkDismissed] = useState(false);
+  const linkMsg = link && !linkDismissed ? (LINK_MESSAGES[link] ?? null) : null;
 
-  useEffect(() => {
-    const link = new URLSearchParams(window.location.search).get('link');
-    if (link && LINK_MESSAGES[link]) {
-      setLinkMsg(LINK_MESSAGES[link]);
-      window.history.replaceState(null, '', '/dashboard');
-    }
-  }, []);
 
   const agentName = useMemo(() => new Map(state?.agents.map((a) => [a.id, a.name]) ?? []), [state]);
   const pending = state?.requests.filter((r) => r.status === 'pending_approval') ?? [];
@@ -116,7 +112,20 @@ export default function DashboardPage() {
       </div>
 
       {linkMsg && (
-        <div className={`rounded-xl p-3 text-sm ${linkMsg.tone === 'allow' ? 'bg-allow-soft text-allow' : 'bg-deny-soft text-deny'}`}>{linkMsg.text}</div>
+        <div className={`flex items-start justify-between gap-3 rounded-xl p-3 text-sm ${linkMsg.tone === 'allow' ? 'bg-allow-soft text-allow' : 'bg-deny-soft text-deny'}`}>
+          {linkMsg.text}
+          <button
+            type="button"
+            aria-label="Dismiss"
+            className="opacity-70 hover:opacity-100"
+            onClick={() => {
+              setLinkDismissed(true);
+              window.history.replaceState(null, '', '/dashboard');
+            }}
+          >
+            ×
+          </button>
+        </div>
       )}
 
       {pending.length + pendingOps.length > 0 && (
@@ -204,7 +213,7 @@ export default function DashboardPage() {
         </section>
 
         <aside className="space-y-6">
-          <PhonePush topic={state.user.ntfyTopic} onSaved={refresh} />
+          <PhonePush key={state.user.ntfyTopic ?? ''} topic={state.user.ntfyTopic} onSaved={refresh} />
           <div>
             <SectionTitle>
               <span className="inline-flex items-center gap-1.5">

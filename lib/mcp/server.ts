@@ -5,6 +5,7 @@ import { db } from '../db';
 import { merchants, paymentRequests, type Agent } from '../db/schema';
 import { AcceptDisputeInput, InvoiceInput, RefundInput, getOperation, opsSummary, requestOperation, toAgentOpResult, waitForOperation } from '../ops/service';
 import { callPayPalTool } from '../ops/paypal-tools';
+import type { Order } from '../paypal/types';
 import {
   PaymentRequestInput,
   allowanceSummary,
@@ -142,17 +143,17 @@ List every item with its real category. The total must equal the sum of the item
 // ── Business agents: PayPal's Agent Toolkit, behind Allowance ─────────────────────────────
 
 // Keep what an agent needs from a PayPal order (ids, amounts, status, payer) and drop the rest.
-function summarizeOrder(order: any) {
+function summarizeOrder(order: Order) {
   return {
     id: order.id,
     status: order.status,
     payer: order.payer?.email_address ?? order.payment_source?.paypal?.email_address ?? null,
-    purchase_units: (order.purchase_units ?? []).map((u: any) => ({
+    purchase_units: (order.purchase_units ?? []).map((u) => ({
       description: u.description,
       amount: u.amount?.value,
-      items: (u.items ?? []).map((i: any) => `${i.quantity}× ${i.name} @ ${i.unit_amount?.value}`),
-      captures: (u.payments?.captures ?? []).map((c: any) => ({ id: c.id, amount: c.amount?.value, status: c.status, created: c.create_time })),
-      refunds: (u.payments?.refunds ?? []).map((r: any) => ({ id: r.id, amount: r.amount?.value, status: r.status })),
+      items: (u.items ?? []).map((i) => `${i.quantity}× ${i.name} @ ${i.unit_amount?.value}`),
+      captures: (u.payments?.captures ?? []).map((c) => ({ id: c.id, amount: c.amount?.value, status: c.status, created: c.create_time })),
+      refunds: (u.payments?.refunds ?? []).map((r) => ({ id: r.id, amount: r.amount?.value, status: r.status })),
     })),
   };
 }
@@ -181,9 +182,9 @@ Never retry a denied action.`,
       return fail(err instanceof z.ZodError ? `Invalid request: ${z.prettifyError(err)}` : `Failed: ${(err as Error).message}`);
     }
   };
-  const passthrough = async (tool: string, args: Record<string, unknown>, shape?: (r: any) => unknown) => {
+  const passthrough = async <T>(tool: string, args: Record<string, unknown>, shape?: (r: T) => unknown) => {
     try {
-      const r = await callPayPalTool(tool, args);
+      const r = await callPayPalTool<T>(tool, args);
       return json(shape ? shape(r) : r);
     } catch (err) {
       return fail(`PayPal ${tool} failed: ${(err as Error).message.slice(0, 300)}`);

@@ -12,7 +12,7 @@ const existing = await db.select().from(wallets).where(eq(wallets.userId, DEMO_U
 if (!existing.length) await db.insert(wallets).values({ id: 'w_spike', userId: DEMO_USER_ID, status: 'active', paymentTokenId, customerId, payerEmail: process.env.SANDBOX_BUYER_EMAIL });
 const [pantry] = await db.select().from(agents).where(eq(agents.id, 'a_pantry'));
 
-const show = (label: string, r: any) => console.log(`\n[${label}] ${r.status} (${r.decidedBy}) ${r.amount} @ ${r.merchant}\n  ${r.message}\n  reasons: ${r.reasons.join(' | ') || '-'}${r.paypal ? `\n  paypal: ${JSON.stringify(r.paypal)}` : ''}`);
+const show = (label: string, r: Awaited<ReturnType<typeof requestPayment>>) => console.log(`\n[${label}] ${r.status} (${r.decidedBy}) ${r.amount} @ ${r.merchant}\n  ${r.message}\n  reasons: ${r.reasons.join(' | ') || '-'}${r.paypal ? `\n  paypal: ${JSON.stringify(r.paypal)}` : ''}`);
 
 const benign = await requestPayment(pantry, {
   merchant: 'FreshCart', total: 11.4, purpose: 'Weekly restock from the shopping list: oat milk and bananas.',

@@ -2,9 +2,10 @@
 
 import clsx from 'clsx';
 import { Check, Copy, KeyRound } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button, Card, SectionTitle, Spinner } from '@/components/ui';
 import { api, useDashboard } from '@/components/use-dashboard';
+import { useOrigin, useSearchParam } from '@/components/use-location';
 
 function CodeBlock({ title, code }: { title: string; code: string }) {
   const [copied, setCopied] = useState(false);
@@ -31,18 +32,12 @@ function CodeBlock({ title, code }: { title: string; code: string }) {
 
 export default function ConnectPage() {
   const { state } = useDashboard();
-  const [agentId, setAgentId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
   const [key, setKey] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [origin, setOrigin] = useState('https://your-allowance-host');
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-    setAgentId(new URLSearchParams(window.location.search).get('agent'));
-  }, []);
-  useEffect(() => {
-    if (state && !agentId) setAgentId(state.agents[0]?.id ?? null);
-  }, [state, agentId]);
+  const origin = useOrigin('https://your-allowance-host');
+  const fromUrl = useSearchParam('agent');
+  const agentId = picked ?? fromUrl ?? state?.agents[0]?.id ?? null;
 
   const agent = state?.agents.find((a) => a.id === agentId);
   const url = `${origin}/api/mcp`;
@@ -80,7 +75,7 @@ export default function ConnectPage() {
                 key={a.id}
                 type="button"
                 onClick={() => {
-                  setAgentId(a.id);
+                  setPicked(a.id);
                   setKey(null);
                 }}
                 className={clsx('w-full rounded-xl border p-3 text-left text-sm', a.id === agentId ? 'border-ink bg-surface-2' : 'border-line hover:bg-surface-2')}

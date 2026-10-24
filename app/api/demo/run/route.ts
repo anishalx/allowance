@@ -1,6 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { AGENT_MODELS, runDemoAgent, type AgentStep } from '@/lib/agent/demo-agent';
+import { spendAi } from '@/lib/ai/budget';
 import { currentUserId } from '@/lib/dashboard';
 import { db, dbReady } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
@@ -22,6 +23,8 @@ export async function POST(req: Request) {
     const input = RunInput.parse(await req.json());
     const [agent] = await db.select().from(agents).where(and(eq(agents.id, input.agentId), eq(agents.userId, await currentUserId())));
     if (!agent) return Response.json({ error: 'Agent not found' }, { status: 404 });
+    const overBudget = spendAi(agent.userId, 'agentRun');
+    if (overBudget) return Response.json({ error: overBudget }, { status: 429 });
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({

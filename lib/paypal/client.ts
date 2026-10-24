@@ -55,7 +55,7 @@ export type RequestOptions = {
   headers?: Record<string, string>;
 };
 
-export async function paypal<T = any>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, opts: RequestOptions = {}): Promise<T> {
+export async function paypal<T = unknown>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, opts: RequestOptions = {}): Promise<T> {
   const requestId = method === 'POST' ? (opts.idempotencyKey ?? randomUUID()) : undefined;
   let refreshed = false;
 

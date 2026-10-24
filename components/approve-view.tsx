@@ -3,6 +3,7 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { use, useCallback, useEffect, useState } from 'react';
 import { OperationApprovalCard } from './operation-views';
+import { useSearchParam } from './use-location';
 import { ApprovalCard } from './request-views';
 import { Logo, Spinner, StatusChip } from './ui';
 import type { DashboardOperation, DashboardRequest } from '@/lib/dashboard';
@@ -16,25 +17,23 @@ type Loaded =
 export function ApproveView({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const isOp = id.startsWith('op_');
-  const [token, setToken] = useState<string | null>(null);
+  const token = useSearchParam('token', ''); // null until the browser's URL is known
   const [data, setData] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
-    async (t: string) => {
-      const res = await fetch(`/api/${isOp ? 'operations' : 'requests'}/${id}?token=${encodeURIComponent(t)}`, { cache: 'no-store' });
-      const body = await res.json();
-      if (!res.ok) setError(body.error);
-      else setData(isOp ? { kind: 'operation', agentName: body.agentName, item: body.operation } : { kind: 'request', agentName: body.agentName, item: body.request });
-    },
+    (t: string) =>
+      fetch(`/api/${isOp ? 'operations' : 'requests'}/${id}?token=${encodeURIComponent(t)}`, { cache: 'no-store' }).then(async (res) => {
+        const body = await res.json();
+        if (!res.ok) setError(body.error);
+        else setData(isOp ? { kind: 'operation', agentName: body.agentName, item: body.operation } : { kind: 'request', agentName: body.agentName, item: body.request });
+      }),
     [id, isOp],
   );
 
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('token') ?? '';
-    setToken(t);
-    load(t);
-  }, [load]);
+    if (token !== null) load(token);
+  }, [load, token]);
 
   const pending = data?.item.status === 'pending_approval' && token;
   const failed = data && ['denied', 'expired', 'failed'].includes(data.item.status);

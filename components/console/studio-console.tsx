@@ -337,12 +337,18 @@ export default function StudioConsole() {
   const { confirm, dialog } = useConfirm();
   const ctxRef = useRef<Ctx>({ confirm, reload: async () => {} });
 
-  const reload = useCallback(async () => {
-    const d = await api<ConsoleData>('/api/console/data');
-    setData(toStudioData(d));
-    setNote(d.paypalNote);
-  }, []);
-  ctxRef.current = { confirm, reload };
+  const reload = useCallback(
+    () =>
+      api<ConsoleData>('/api/console/data').then((d) => {
+        setData(toStudioData(d));
+        setNote(d.paypalNote);
+      }),
+    [],
+  );
+  // The Guardian's tools are registered once, so they read the latest confirm/reload through this ref.
+  useEffect(() => {
+    ctxRef.current = { confirm, reload };
+  }, [confirm, reload]);
 
   useEffect(() => {
     reload();

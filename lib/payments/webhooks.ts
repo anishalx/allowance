@@ -3,9 +3,10 @@ import { db } from '../db';
 import { agents, paymentRequests, wallets, webhookEvents } from '../db/schema';
 import { record } from '../events';
 import { formatUsd } from '../policy/engine';
+import type { WebhookResource } from '../paypal/types';
 import { syncPayout } from './service';
 
-type WebhookEvent = { id: string; event_type: string; resource: any; summary?: string };
+type WebhookEvent = { id: string; event_type: string; resource?: WebhookResource; summary?: string };
 
 const byId = async (id: string | undefined) =>
   id ? (await db.select().from(paymentRequests).where(eq(paymentRequests.id, id)))[0] : undefined;
@@ -50,7 +51,7 @@ export async function handleWebhook(event: WebhookEvent, verified: boolean) {
       break;
     }
     case 'PAYMENT.CAPTURE.REFUNDED': {
-      const captureId = r.links?.find((l: { rel: string }) => l.rel === 'up')?.href?.split('/').pop();
+      const captureId = r.links?.find((l) => l.rel === 'up')?.href?.split('/').pop();
       const req = await byCapture(captureId);
       const refundedCents = r.amount?.value ? Math.round(Number(r.amount.value) * 100) : req?.amountCents;
       if (req && req.status !== 'refunded' && refundedCents !== undefined) {
@@ -74,7 +75,7 @@ export async function handleWebhook(event: WebhookEvent, verified: boolean) {
     }
     case 'VAULT.PAYMENT-TOKEN.DELETED': {
       // The human can also unlink Allowance from inside their PayPal account; honor it immediately.
-      const [w] = await db.select().from(wallets).where(eq(wallets.paymentTokenId, r.id));
+      const [w] = r.id ? await db.select().from(wallets).where(eq(wallets.paymentTokenId, r.id)) : [];
       if (w && w.status === 'active') {
         await db.update(wallets).set({ status: 'revoked' }).where(eq(wallets.id, w.id));
         await record({ userId: w.userId, type: 'wallet.revoked', message: 'PayPal reports the saved wallet was removed. Agents can no longer spend.' });
@@ -83,7 +84,7 @@ export async function handleWebhook(event: WebhookEvent, verified: boolean) {
     }
     case 'CUSTOMER.DISPUTE.CREATED': {
       // A dispute on an agent purchase freezes that agent until the human looks at it.
-      const captureIds: string[] = (r.disputed_transactions ?? []).map((t: { seller_transaction_id?: string }) => t.seller_transaction_id).filter(Boolean);
+      const captureIds = (r.disputed_transactions ?? []).map((t) => t.seller_transaction_id).filter((id): id is string => !!id);
       for (const captureId of captureIds) {
         const req = await byCapture(captureId);
         if (!req) continue;

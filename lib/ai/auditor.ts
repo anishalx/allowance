@@ -1,6 +1,7 @@
 import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import type { Check, Decision, LineItem, Policy } from '../policy/schema';
+import { spendAi } from './budget';
 import { models, openai } from './openai';
 
 // The AI half of the check. It sees what the deterministic engine can't — intent — and may only
@@ -40,6 +41,7 @@ Verdicts: "consistent" = clearly fits the role; "suspicious" = a human should lo
 are consistent even when large (the engine handles amounts).`;
 
 export type AuditInput = {
+  household?: string; // counts against the public demo's daily AI cap
   agent: { name: string; role: string };
   mandateText: string;
   policy: Policy;
@@ -80,6 +82,7 @@ export async function auditRequest(input: AuditInput, timeoutMs = 20_000): Promi
       `<request>${JSON.stringify(payload)}</request>`,
     ],
     timeoutMs,
+    input.household,
   );
 }
 
@@ -104,6 +107,7 @@ Verdicts: "consistent" = a sensible action for this role; "suspicious" = a human
 likely manipulation or fraud, block it. Ordinary, proportionate customer-service actions are consistent.`;
 
 export type OperationAuditInput = {
+  household?: string;
   agent: { name: string; role: string };
   mandateText: string;
   notes: string[];
@@ -125,13 +129,25 @@ export async function auditOperation(input: OperationAuditInput, timeoutMs = 20_
       `<action>${JSON.stringify(input.action)}</action>`,
     ],
     timeoutMs,
+    input.household,
   );
 }
 
 const engineLine = (engine: { decision: Decision; checks: Check[] }) =>
   `Engine result: ${engine.decision}; ${engine.checks.filter((c) => c.outcome !== 'pass').map((c) => c.detail).join(' ') || 'all checks passed'}`;
 
-async function runAudit(instructions: string, lines: string[], timeoutMs: number): Promise<AuditVerdict> {
+const failClosed = (explanation: string): AuditVerdict => ({
+  verdict: 'suspicious',
+  riskScore: 50,
+  signals: ['Auditor unavailable'],
+  explanation,
+  model: models.auditor,
+  unavailable: true,
+});
+
+async function runAudit(instructions: string, lines: string[], timeoutMs: number, household?: string): Promise<AuditVerdict> {
+  const overBudget = household ? spendAi(household, 'audit') : null;
+  if (overBudget) return failClosed(`${overBudget} Without the AI auditor, Allowance asks you instead of approving automatically.`);
   try {
     const res = await openai().responses.parse(
       {
@@ -147,14 +163,7 @@ async function runAudit(instructions: string, lines: string[], timeoutMs: number
     return { ...res.output_parsed, model: models.auditor };
   } catch (err) {
     console.error('[auditor] unavailable, failing closed:', (err as Error).message);
-    return {
-      verdict: 'suspicious',
-      riskScore: 50,
-      signals: ['Auditor unavailable'],
-      explanation: 'The AI auditor could not review this request, so Allowance is asking you instead of approving it automatically.',
-      model: models.auditor,
-      unavailable: true,
-    };
+    return failClosed('The AI auditor could not review this request, so Allowance is asking you instead of approving it automatically.');
   }
 }
 

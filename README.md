@@ -269,7 +269,7 @@ None of these changes Allowance itself: the rules engine, AI auditor, phone appr
 
 Other limitations:
 
-- **Demo households, not accounts.** Each visitor to the hosted demo gets a private household (its own agents, rules, history and kill switch) that spends from one shared sandbox wallet. A visitor's kill switch only unlinks that wallet for them; it never deletes the real Vault token. Real deployments need user sign-in, and the data model is already per-user.
+- **Demo households, not accounts.** Each visitor to the hosted demo gets a private household (its own agents, rules, history and kill switch) that spends from one shared sandbox wallet. A visitor's kill switch only unlinks that wallet for them; it never deletes the real Vault token. AI use is capped per visitor and per day (`AI_UNITS_PER_VISITOR`, `AI_UNITS_PER_DAY`), and when the cap is reached the auditor fails closed: purchases still work, they just come to you for approval. Real deployments need user sign-in, and the data model is already per-user.
 - **Refunds return money from the platform;** taking it back from the merchant is out of scope.
 - **Sandbox quirks.** Transaction Search and webhook delivery can lag behind live captures, so payouts are also settled by polling.
 
