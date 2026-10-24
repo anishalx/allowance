@@ -5,12 +5,14 @@ import { db, dbReady } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { record } from '@/lib/events';
 import { route } from '@/lib/http';
+import { OpsPolicy } from '@/lib/ops/schema';
 import { Policy } from '@/lib/policy/schema';
 
 const UpdateAgent = z.object({
   status: z.enum(['active', 'frozen']).optional(),
   mandateText: z.string().trim().min(3).max(2000).optional(),
   policy: Policy.optional(),
+  opsPolicy: OpsPolicy.optional(),
 });
 
 export const PATCH = route(async (req: Request, ctx: RouteContext<'/api/agents/[id]'>) => {
@@ -25,6 +27,7 @@ export const PATCH = route(async (req: Request, ctx: RouteContext<'/api/agents/[
     .set({
       ...(patch.status && { status: patch.status }),
       ...(patch.policy && { policy: patch.policy, mandateText: patch.mandateText ?? agent.mandateText, policyVersion: agent.policyVersion + 1 }),
+      ...(patch.opsPolicy && { opsPolicy: patch.opsPolicy, mandateText: patch.mandateText ?? agent.mandateText, policyVersion: agent.policyVersion + 1 }),
     })
     .where(eq(agents.id, id))
     .returning();
@@ -37,8 +40,9 @@ export const PATCH = route(async (req: Request, ctx: RouteContext<'/api/agents/[
       message: patch.status === 'frozen' ? `${agent.name} frozen. It can't spend until you unfreeze it.` : `${agent.name} unfrozen.`,
     });
   }
-  if (patch.policy) {
-    await record({ userId: agent.userId, agentId: id, type: 'agent.rules_updated', message: `${agent.name}'s rules updated (v${updated.policyVersion}): ${patch.policy.summary}` });
+  const newRules = patch.policy ?? patch.opsPolicy;
+  if (newRules) {
+    await record({ userId: agent.userId, agentId: id, type: 'agent.rules_updated', message: `${agent.name}'s rules updated (v${updated.policyVersion}): ${newRules.summary}` });
   }
   return Response.json({ ok: true, policyVersion: updated.policyVersion, status: updated.status });
 });

@@ -88,6 +88,8 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
   settled: { label: 'Settled', tone: 'allow' },
   failed: { label: 'Failed', tone: 'deny' },
   refunded: { label: 'Refunded', tone: 'neutral' },
+  executing: { label: 'Running…', tone: 'neutral' },
+  done: { label: 'Done in PayPal', tone: 'allow' },
 };
 
 export function StatusChip({ status, decidedBy }: { status: string; decidedBy?: string }) {

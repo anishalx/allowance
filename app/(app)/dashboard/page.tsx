@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityFeed } from '@/components/activity-feed';
 import { AgentCard } from '@/components/agent-card';
 import { Drawer } from '@/components/drawer';
+import { OperationApprovalCard, OperationRow, OperationTrace } from '@/components/operation-views';
 import { ApprovalCard, DecisionTrace, MerchantLabel, RiskBadge } from '@/components/request-views';
 import { Card, SectionTitle, Spinner, StatusChip } from '@/components/ui';
 import { api, useDashboard } from '@/components/use-dashboard';
@@ -74,6 +75,7 @@ function PhonePush({ topic, onSaved }: { topic: string | null; onSaved: () => vo
 export default function DashboardPage() {
   const { state, error, live, refresh } = useDashboard();
   const [selected, setSelected] = useState<string | null>(null);
+  const [selectedOp, setSelectedOp] = useState<string | null>(null);
   const [linkMsg, setLinkMsg] = useState<(typeof LINK_MESSAGES)[string] | null>(null);
 
   useEffect(() => {
@@ -86,7 +88,11 @@ export default function DashboardPage() {
 
   const agentName = useMemo(() => new Map(state?.agents.map((a) => [a.id, a.name]) ?? []), [state]);
   const pending = state?.requests.filter((r) => r.status === 'pending_approval') ?? [];
+  const pendingOps = state?.operations.filter((o) => o.status === 'pending_approval') ?? [];
   const selectedRequest = state?.requests.find((r) => r.id === selected) ?? null;
+  const selectedOperation = state?.operations.find((o) => o.id === selectedOp) ?? null;
+  // Activity rows link to either a purchase or a business action.
+  const openActivity = (id: string) => (id.startsWith('op_') ? setSelectedOp(id) : setSelected(id));
 
   if (!state) {
     return <div className="flex items-center gap-2 text-ink-2">{error ? <span className="text-deny">{error}</span> : <><Spinner /> Loading…</>}</div>;
@@ -111,12 +117,15 @@ export default function DashboardPage() {
         <div className={`rounded-xl p-3 text-sm ${linkMsg.tone === 'allow' ? 'bg-allow-soft text-allow' : 'bg-deny-soft text-deny'}`}>{linkMsg.text}</div>
       )}
 
-      {pending.length > 0 && (
+      {pending.length + pendingOps.length > 0 && (
         <section>
-          <SectionTitle>Waiting for you ({pending.length})</SectionTitle>
+          <SectionTitle>Waiting for you ({pending.length + pendingOps.length})</SectionTitle>
           <div className="grid gap-4 lg:grid-cols-2">
             {pending.map((r) => (
               <ApprovalCard key={r.id} request={r} agentName={agentName.get(r.agentId) ?? 'Agent'} onDone={refresh} />
+            ))}
+            {pendingOps.map((o) => (
+              <OperationApprovalCard key={o.id} op={o} agentName={agentName.get(o.agentId) ?? 'Agent'} onDone={refresh} />
             ))}
           </div>
         </section>
@@ -179,6 +188,17 @@ export default function DashboardPage() {
               ))}
             </Card>
           </div>
+
+          {state.operations.length > 0 && (
+            <div className="mt-8">
+              <SectionTitle>Actions on your PayPal account</SectionTitle>
+              <Card className="divide-y divide-line">
+                {state.operations.map((o) => (
+                  <OperationRow key={o.id} op={o} agentName={agentName.get(o.agentId) ?? 'Agent'} onClick={() => setSelectedOp(o.id)} />
+                ))}
+              </Card>
+            </div>
+          )}
         </section>
 
         <aside className="space-y-6">
@@ -190,11 +210,15 @@ export default function DashboardPage() {
               </span>
             </SectionTitle>
             <Card className="max-h-[640px] overflow-y-auto p-4">
-              <ActivityFeed events={state.events} onSelect={setSelected} />
+              <ActivityFeed events={state.events} onSelect={openActivity} />
             </Card>
           </div>
         </aside>
       </div>
+
+      <Drawer open={!!selectedOperation} onClose={() => setSelectedOp(null)} title="How Allowance decided">
+        {selectedOperation && <OperationTrace op={selectedOperation} agentName={agentName.get(selectedOperation.agentId) ?? 'Agent'} />}
+      </Drawer>
 
       <Drawer open={!!selectedRequest} onClose={() => setSelected(null)} title="How Allowance decided">
         {selectedRequest && <DecisionTrace request={selectedRequest} agentName={agentName.get(selectedRequest.agentId) ?? 'Agent'} onChanged={refresh} />}

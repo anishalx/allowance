@@ -1,7 +1,7 @@
 import { desc, eq } from 'drizzle-orm';
 import { currentUserId } from './dashboard';
 import { db, dbReady } from './db';
-import { agents, paymentRequests } from './db/schema';
+import { agents, operations, paymentRequests } from './db/schema';
 import { searchTransactions } from './paypal/api';
 import { toCents } from './policy/engine';
 
@@ -59,10 +59,28 @@ export async function getConsoleData() {
     r.policyChecks.map((c, n) => ({ id: `${r.id}-c${n}`, purchase_id: r.id, rule: c.rule, outcome: c.outcome, detail: c.detail })),
   );
 
+  const opRows = await db.select().from(operations).where(eq(operations.userId, userId)).orderBy(desc(operations.createdAt));
+  const businessActions = opRows.map((o) => ({
+    id: o.id,
+    created_date: day(o.createdAt),
+    agent_id: o.agentId,
+    agent: agentName.get(o.agentId) ?? o.agentId,
+    action: { refund: 'Refund', invoice: 'Invoice', accept_dispute: 'Accept dispute' }[o.kind],
+    paypal_tool: o.paypalTool,
+    target: o.target,
+    amount: o.amountCents / 100,
+    outcome: o.status === 'done' ? 'Done' : o.status === 'pending_approval' ? 'Waiting' : o.status === 'failed' ? 'Failed' : 'Blocked',
+    decided_by: { policy: 'Rules engine', auditor: 'AI auditor', human: 'Human', timeout: 'Timed out' }[o.decidedBy],
+    ai_verdict: o.audit?.verdict ?? 'n/a',
+    ai_risk: o.audit?.riskScore ?? 0,
+    reason: o.reason,
+  }));
+
   const agentTable = agentRows.map((a) => ({
     id: a.id,
     name: a.name,
     role: a.role,
+    kind: a.kind === 'business' ? 'Operates PayPal' : 'Spends wallet',
     status: a.status,
     weekly_limit: a.policy.limits.weekly ?? 0,
     monthly_limit: a.policy.limits.monthly ?? 0,
@@ -93,7 +111,7 @@ export async function getConsoleData() {
     paypalNote = `PayPal Transaction Search unavailable: ${(err as Error).message}`;
   }
 
-  return { purchases, lineItems, ruleChecks, agents: agentTable, paypalTransactions, paypalNote };
+  return { purchases, lineItems, ruleChecks, businessActions, agents: agentTable, paypalTransactions, paypalNote };
 }
 
 export type ConsoleData = Awaited<ReturnType<typeof getConsoleData>>;

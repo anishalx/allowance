@@ -1,6 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db, dbReady } from './db';
-import { agents, events, merchants, paymentRequests, users, wallets } from './db/schema';
+import { agents, events, merchants, operations, paymentRequests, users, wallets } from './db/schema';
+import { getOperation, opsSummary } from './ops/service';
 import { DEMO_USER_ID } from './db/seed';
 import { allowanceSummary, getRequest } from './payments/service';
 
@@ -16,6 +17,8 @@ export async function getDashboardState() {
   // Lazily expire stale approvals so the inbox is honest.
   const requests = await Promise.all(requestRows.map(async (r) => (r.status === 'pending_approval' ? ((await getRequest(r.id)) ?? r) : r)));
   const recentEvents = await db.select().from(events).where(eq(events.userId, userId)).orderBy(desc(events.id)).limit(60);
+  const opRows = await db.select().from(operations).where(eq(operations.userId, userId)).orderBy(desc(operations.createdAt)).limit(50);
+  const ops = await Promise.all(opRows.map(async (o) => (o.status === 'pending_approval' ? ((await getOperation(o.id)) ?? o) : o)));
 
   const spentStatuses = new Set(['paid', 'settled', 'processing']);
   const stats = {
@@ -35,12 +38,15 @@ export async function getDashboardState() {
         id: a.id,
         name: a.name,
         role: a.role,
+        kind: a.kind,
         status: a.status,
         mandateText: a.mandateText,
         policy: a.policy,
         policyVersion: a.policyVersion,
         apiKeyPrefix: a.apiKeyPrefix,
         allowance: await allowanceSummary(a),
+        opsPolicy: a.opsPolicy,
+        ops: a.kind === 'business' ? await opsSummary(a) : null,
       })),
     ),
     requests: requests.map((r) => ({
@@ -66,6 +72,10 @@ export async function getDashboardState() {
       error: r.error,
       createdAt: r.createdAt.toISOString(),
     })),
+    operations: ops.map((o) => {
+      const { approvalToken: _secret, ...rest } = o;
+      return { ...rest, createdAt: o.createdAt.toISOString(), updatedAt: o.updatedAt.toISOString(), approvalExpiresAt: o.approvalExpiresAt?.toISOString() ?? null };
+    }),
     events: recentEvents.map((e) => ({ ...e, createdAt: e.createdAt.toISOString() })),
     merchants: await db.select().from(merchants),
     stats,
@@ -75,3 +85,4 @@ export async function getDashboardState() {
 export type DashboardState = Awaited<ReturnType<typeof getDashboardState>>;
 export type DashboardRequest = DashboardState['requests'][number];
 export type DashboardAgent = DashboardState['agents'][number];
+export type DashboardOperation = DashboardState['operations'][number];

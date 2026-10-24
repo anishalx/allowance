@@ -3,7 +3,8 @@
 import { ArrowRight, Braces, CircleAlert, ShieldPlus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { CompiledMandate } from '@/lib/ai/compiler';
+import type { CompiledMandate, CompiledOpsMandate } from '@/lib/ai/compiler';
+import type { OpsPolicy } from '@/lib/ops/schema';
 import { titleCase } from '@/lib/format';
 import type { Policy } from '@/lib/policy/schema';
 import { api } from './use-dashboard';
@@ -65,17 +66,52 @@ export function PolicyView({ policy }: { policy: Policy }) {
   );
 }
 
+export function OpsPolicyView({ policy }: { policy: OpsPolicy }) {
+  const r = policy.refunds;
+  const i = policy.invoices;
+  return (
+    <dl className="divide-y divide-line">
+      <Row label="Refunds">
+        {r.enabled ? (
+          <>
+            up to {money(r.perRefundMax)} each · {money(r.dailyMax)} a day
+            {r.maxOrderAgeDays !== null && ` · orders from the last ${r.maxOrderAgeDays} days`}
+            {r.requireAbove !== null && ` · ask me above ${money(r.requireAbove)}`}
+            {r.fullRefundsNeedApproval && ' · ask me before full refunds'}
+          </>
+        ) : (
+          'not allowed'
+        )}
+      </Row>
+      <Row label="Invoices">
+        {i.enabled ? (
+          <>
+            up to {money(i.perInvoiceMax)} · {i.dailyCount ?? 'unlimited'} a day
+            {i.requireAbove !== null && ` · ask me above ${money(i.requireAbove)}`}
+            {i.onlyExistingCustomers && ' · existing customers only'}
+          </>
+        ) : (
+          'not allowed'
+        )}
+      </Row>
+      <Row label="Disputes">{policy.disputes.acceptClaims === 'never' ? 'never accept a claim' : 'ask me before accepting a claim'}</Row>
+      {policy.notes.length > 0 && <Row label="For the AI auditor">{policy.notes.join(' · ')}</Row>}
+    </dl>
+  );
+}
+
 type Props =
   | { mode: 'new' }
-  | { mode: 'edit'; agent: { id: string; name: string; role: string; mandateText: string; policy: Policy; policyVersion: number } };
+  | { mode: 'edit'; agent: { id: string; name: string; role: string; mandateText: string; policy: Policy; policyVersion: number; kind: 'shopper' | 'business'; opsPolicy: OpsPolicy | null } };
 
 export function MandateEditor(props: Props) {
   const router = useRouter();
   const editing = props.mode === 'edit' ? props.agent : null;
   const [name, setName] = useState(editing?.name ?? '');
   const [role, setRole] = useState(editing?.role ?? '');
+  const [kind, setKind] = useState<'shopper' | 'business'>(editing?.kind ?? 'shopper');
   const [text, setText] = useState(editing?.mandateText ?? '');
-  const [compiled, setCompiled] = useState<CompiledMandate | null>(null);
+  const [compiled, setCompiled] = useState<CompiledMandate | CompiledOpsMandate | null>(null);
   const [showJson, setShowJson] = useState(false);
   const [busy, setBusy] = useState<'compile' | 'save' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -86,9 +122,9 @@ export function MandateEditor(props: Props) {
     setError(null);
     try {
       setCompiled(
-        await api<CompiledMandate>('/api/mandates/compile', {
+        await api<CompiledMandate | CompiledOpsMandate>('/api/mandates/compile', {
           method: 'POST',
-          json: { agentName: name, agentRole: role, text, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+          json: { agentName: name, agentRole: role, text, kind, timezone: Intl.DateTimeFormat().resolvedOptions().timeZone },
         }),
       );
     } catch (err) {
@@ -104,10 +140,13 @@ export function MandateEditor(props: Props) {
     setError(null);
     try {
       if (editing) {
-        await api(`/api/agents/${editing.id}`, { method: 'PATCH', json: { mandateText: text, policy: compiled.policy } });
+        await api(`/api/agents/${editing.id}`, { method: 'PATCH', json: { mandateText: text, ...(kind === 'business' ? { opsPolicy: compiled.policy } : { policy: compiled.policy }) } });
         router.push('/dashboard');
       } else {
-        const { apiKey } = await api<{ apiKey: string }>('/api/agents', { method: 'POST', json: { name, role, mandateText: text, policy: compiled.policy } });
+        const { apiKey } = await api<{ apiKey: string }>('/api/agents', {
+          method: 'POST',
+          json: { name, role, kind, mandateText: text, ...(kind === 'business' ? { opsPolicy: compiled.policy } : { policy: compiled.policy }) },
+        });
         setNewKey(apiKey);
       }
     } catch (err) {
@@ -140,6 +179,32 @@ export function MandateEditor(props: Props) {
       <Card className="space-y-4 p-5">
         {!editing && (
           <>
+            <div>
+              <div className="text-sm font-medium">Kind of agent</div>
+              <div className="mt-1 grid grid-cols-2 gap-1 rounded-lg bg-surface-2 p-1" role="radiogroup" aria-label="Kind of agent">
+                {(
+                  [
+                    ['shopper', 'Spends a wallet', 'Buys things with your linked PayPal'],
+                    ['business', 'Operates your PayPal', "Refunds and invoices via PayPal's Agent Toolkit"],
+                  ] as const
+                ).map(([k, label, hint]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    role="radio"
+                    aria-checked={kind === k}
+                    onClick={() => {
+                      setKind(k);
+                      setCompiled(null);
+                    }}
+                    className={`rounded-md px-3 py-2 text-left text-xs ${kind === k ? 'bg-surface font-medium text-ink shadow-card' : 'text-ink-2 hover:text-ink'}`}
+                  >
+                    <div className="text-sm">{label}</div>
+                    <div className="font-normal text-ink-3">{hint}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
             <div>
               <label htmlFor="name" className="text-sm font-medium">
                 Agent name
@@ -191,7 +256,7 @@ export function MandateEditor(props: Props) {
           <Card className="p-5">
             <SectionTitle>Current rules (v{editing.policyVersion})</SectionTitle>
             <p className="mb-3 text-sm">{editing.policy.summary}</p>
-            <PolicyView policy={editing.policy} />
+            {editing.kind === 'business' && editing.opsPolicy ? <OpsPolicyView policy={editing.opsPolicy} /> : <PolicyView policy={editing.policy} />}
           </Card>
         )}
         {!compiled && !editing && <Card className="p-5 text-sm text-ink-3">The compiled rules appear here for you to review.</Card>}
@@ -244,7 +309,7 @@ export function MandateEditor(props: Props) {
                 Rules the engine will enforce
               </SectionTitle>
               <p className="mb-3 text-sm">{compiled.policy.summary}</p>
-              {showJson ? <pre className="max-h-96 overflow-auto rounded-lg bg-surface-2 p-3 font-mono text-xs">{JSON.stringify(compiled.policy, null, 2)}</pre> : <PolicyView policy={compiled.policy} />}
+              {showJson ? <pre className="max-h-96 overflow-auto rounded-lg bg-surface-2 p-3 font-mono text-xs">{JSON.stringify(compiled.policy, null, 2)}</pre> : 'refunds' in compiled.policy ? <OpsPolicyView policy={compiled.policy} /> : <PolicyView policy={compiled.policy} />}
               <Button onClick={save} disabled={busy !== null} className="mt-5 w-full" size="lg" variant="allow">
                 {busy === 'save' ? <Spinner /> : null} {editing ? 'Save new rules' : `Create ${name || 'agent'}`}
               </Button>

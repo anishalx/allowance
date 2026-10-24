@@ -78,7 +78,7 @@ const scoutPolicy: Policy = {
 };
 
 // Business agents operate our PayPal account; they can't buy anything themselves.
-const noPurchasesPolicy: Policy = {
+export const noPurchasesPolicy: Policy = {
   summary: 'This agent cannot make purchases.',
   currency: 'USD',
   limits: { perPurchaseMax: 0, daily: 0, weekly: 0, monthly: 0 },

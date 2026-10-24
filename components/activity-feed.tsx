@@ -24,6 +24,14 @@ const ICONS: Record<string, { icon: typeof Check; cls: string }> = {
   'agent.active': { icon: RefreshCw, cls: 'text-allow bg-allow-soft' },
   'agent.rules_updated': { icon: Pencil, cls: 'text-ink-2 bg-surface-2' },
   'dispute.created': { icon: ShieldAlert, cls: 'text-deny bg-deny-soft' },
+  'op.executing': { icon: Check, cls: 'text-allow bg-allow-soft' },
+  'op.approved': { icon: Check, cls: 'text-allow bg-allow-soft' },
+  'op.done': { icon: Undo2, cls: 'text-allow bg-allow-soft' },
+  'op.pending_approval': { icon: CircleAlert, cls: 'text-ask bg-ask-soft' },
+  'op.denied': { icon: Ban, cls: 'text-deny bg-deny-soft' },
+  'op.expired': { icon: Ban, cls: 'text-ink-3 bg-surface-2' },
+  'op.failed': { icon: CircleAlert, cls: 'text-deny bg-deny-soft' },
+  'payment.partially_refunded': { icon: Undo2, cls: 'text-ink-2 bg-surface-2' },
 };
 
 export function ActivityFeed({ events, onSelect }: { events: DashboardState['events']; onSelect?: (requestId: string) => void }) {
@@ -32,7 +40,7 @@ export function ActivityFeed({ events, onSelect }: { events: DashboardState['eve
     <ol className="space-y-3">
       {events.map((e) => {
         const { icon: Icon, cls } = ICONS[e.type] ?? { icon: Check, cls: 'text-ink-2 bg-surface-2' };
-        const escalated = e.type === 'request.denied' && e.message.includes('AI auditor');
+        const escalated = (e.type === 'request.denied' || e.type === 'op.denied') && e.message.includes('AI auditor');
         const clickable = e.requestId && onSelect;
         return (
           <li key={e.id} className="slide-in">

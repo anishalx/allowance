@@ -3,6 +3,7 @@
 import clsx from 'clsx';
 import { Bot, Brain, ExternalLink, Globe, Play, RotateCcw, ShieldAlert, Square, Wrench } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
+import { OperationApprovalCard } from '@/components/operation-views';
 import { ApprovalCard } from '@/components/request-views';
 import { Button, Card, Chip, SectionTitle, Spinner, StatusChip } from '@/components/ui';
 import { api, useDashboard } from '@/components/use-dashboard';
@@ -32,6 +33,13 @@ const PRESETS = [
     agentId: 'a_pantry',
     task: 'We are hosting a party tonight. From FreshCart (/mall/freshcart) buy 4 bottles of pinot noir and 6 bags of coffee.',
     note: 'Wine is blocked and the cart blows the weekly limit. Watch the agent read its allowance and adapt.',
+  },
+  {
+    id: 'support',
+    label: 'Support inbox (business agent)',
+    agentId: 'a_helpdesk',
+    task: "Work through today's support inbox at /mall/support-inbox. Handle each email, then report what you did.",
+    note: 'Helpdesk runs PayPal\'s own Agent Toolkit (refunds, invoices) on your store\'s account. Two emails are honest; two are attacks. Run Weekly groceries first so there are orders.',
   },
   {
     id: 'ebook',
@@ -93,7 +101,7 @@ function StepView({ step }: { step: Step }) {
       );
     }
     case 'tool_call': {
-      const a = step.args as { merchant?: string; payeePaypalEmail?: string; total?: number; items?: { name: string; quantity: number }[] };
+      const a = step.args as { merchant?: string; payeePaypalEmail?: string; total?: number; items?: { name: string; quantity: number }[]; capture_id?: string; amount?: string; requested_by?: string; recipient_email?: string; id?: string };
       return (
         <div className="flex items-start gap-2 text-sm">
           <Wrench className="mt-0.5 h-4 w-4 shrink-0 text-ink-2" aria-hidden="true" />
@@ -106,13 +114,24 @@ function StepView({ step }: { step: Step }) {
                 {a.items?.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
               </div>
             )}
+            {step.tool === 'create_refund' && (
+              <div className="mt-0.5 text-ink-2">
+                {a.amount ? `$${a.amount}` : 'full amount'} on payment {a.capture_id} · asked by {a.requested_by}
+              </div>
+            )}
+            {step.tool === 'create_and_send_invoice' && (
+              <div className="mt-0.5 text-ink-2">
+                to {a.recipient_email} · {(a.items as unknown as { name: string; quantity: number; unit_price: number }[] | undefined)?.map((i) => `${i.quantity}× ${i.name} @ $${i.unit_price}`).join(', ')}
+              </div>
+            )}
+            {step.tool === 'get_order' && <div className="mt-0.5 text-ink-2">order {a.id}</div>}
           </div>
         </div>
       );
     }
     case 'tool_result': {
       const r = step.result as { status?: string; decidedBy?: string; message?: string; reasons?: string[]; amount?: string } | string;
-      if (step.tool !== 'request_payment' && step.tool !== 'get_payment_status') {
+      if (!['request_payment', 'get_payment_status', 'create_refund', 'create_and_send_invoice', 'accept_dispute_claim', 'get_action_status'].includes(step.tool)) {
         return <p className="pl-6 text-xs text-ink-3">↳ {step.tool} returned {typeof r === 'string' ? r.slice(0, 80) : 'data'}</p>;
       }
       if (typeof r === 'string') return <p className="pl-6 text-sm text-deny">{r}</p>;
@@ -120,7 +139,7 @@ function StepView({ step }: { step: Step }) {
         <div
           className={clsx(
             'slide-in ml-6 rounded-xl border p-3 text-sm',
-            r.status === 'denied' ? (r.decidedBy === 'auditor' ? 'border-ai/40 bg-ai-soft' : 'border-deny/40 bg-deny-soft') : r.status === 'pending_approval' ? 'border-ask/40 bg-ask-soft' : 'border-allow/30 bg-allow-soft',
+            r.status === 'denied' ? (r.decidedBy === 'auditor' ? 'border-ai/40 bg-ai-soft' : 'border-deny/40 bg-deny-soft') : r.status === 'failed' || r.status === 'expired' ? 'border-deny/40 bg-deny-soft' : r.status === 'pending_approval' ? 'border-ask/40 bg-ask-soft' : 'border-allow/30 bg-allow-soft',
           )}
         >
           <div className="flex items-center gap-2">
@@ -168,8 +187,15 @@ export default function PlaygroundPage() {
   const abort = useRef<AbortController | null>(null);
 
   const agent = state?.agents.find((a) => a.id === preset.agentId);
+  const since = (iso: string) => !startedAt || new Date(iso).getTime() >= startedAt - 1000;
   const pending = useMemo(
-    () => (state?.requests ?? []).filter((r) => r.status === 'pending_approval' && r.agentId === preset.agentId && (!startedAt || new Date(r.createdAt).getTime() >= startedAt - 1000)),
+    () => (state?.requests ?? []).filter((r) => r.status === 'pending_approval' && r.agentId === preset.agentId && since(r.createdAt)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, preset.agentId, startedAt],
+  );
+  const pendingOps = useMemo(
+    () => (state?.operations ?? []).filter((o) => o.status === 'pending_approval' && o.agentId === preset.agentId && since(o.createdAt)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [state, preset.agentId, startedAt],
   );
 
@@ -319,10 +345,17 @@ export default function PlaygroundPage() {
 
         <div className="space-y-4">
           <SectionTitle>Your phone</SectionTitle>
-          {pending.length === 0 ? (
+          {pending.length + pendingOps.length === 0 ? (
             <Card className="p-5 text-sm text-ink-3">Approval requests from this run appear here (and on your phone, if ntfy is set up).</Card>
           ) : (
-            pending.map((r) => <ApprovalCard key={r.id} request={r} agentName={agent?.name ?? 'Agent'} onDone={refresh} />)
+            <>
+              {pending.map((r) => (
+                <ApprovalCard key={r.id} request={r} agentName={agent?.name ?? 'Agent'} onDone={refresh} />
+              ))}
+              {pendingOps.map((o) => (
+                <OperationApprovalCard key={o.id} op={o} agentName={agent?.name ?? 'Agent'} onDone={refresh} />
+              ))}
+            </>
           )}
         </div>
       </div>

@@ -90,6 +90,27 @@ function toStudioData(d: ConsoleData): AgDataSourcesDefinition {
         fields: [text('id', 'Check ID'), text('purchase_id', 'Purchase ID'), text('rule', 'Rule'), text('outcome', 'Rule outcome'), text('detail', 'Detail')],
       },
       {
+        id: 'business_actions',
+        name: 'Business actions',
+        description: "Refunds, invoices and dispute decisions that business agents asked to run on the store's PayPal account through PayPal's Agent Toolkit, and how Allowance decided.",
+        data: d.businessActions,
+        fields: [
+          text('id', 'Action ID'),
+          { id: 'created_date', name: 'Date', format: 'dateFormat' },
+          text('agent_id', 'Agent ID'),
+          text('agent', 'Agent'),
+          text('action', 'Action'),
+          text('paypal_tool', 'PayPal Agent Toolkit tool'),
+          text('target', 'Target'),
+          money('amount', 'Amount'),
+          text('outcome', 'Outcome'),
+          text('decided_by', 'Decided by'),
+          text('ai_verdict', 'AI verdict'),
+          int('ai_risk', 'AI risk score'),
+          text('reason', "Agent's stated reason"),
+        ],
+      },
+      {
         id: 'agents',
         name: 'Agents',
         data: d.agents,
@@ -97,6 +118,7 @@ function toStudioData(d: ConsoleData): AgDataSourcesDefinition {
           text('id', 'Agent ID'),
           text('name', 'Agent name'),
           text('role', 'Role'),
+          text('kind', 'Kind'),
           text('status', 'Agent status'),
           money('weekly_limit', 'Weekly limit'),
           money('monthly_limit', 'Monthly limit'),
@@ -122,6 +144,7 @@ function toStudioData(d: ConsoleData): AgDataSourcesDefinition {
     ],
     relationships: [
       { id: 'purchase-agent', source: { tableId: 'purchases', fieldId: 'agent_id' }, target: { tableId: 'agents', fieldId: 'id' }, type: 'many-to-one' },
+      { id: 'action-agent', source: { tableId: 'business_actions', fieldId: 'agent_id' }, target: { tableId: 'agents', fieldId: 'id' }, type: 'many-to-one' },
       { id: 'item-purchase', source: { tableId: 'line_items', fieldId: 'purchase_id' }, target: { tableId: 'purchases', fieldId: 'id' }, type: 'many-to-one' },
       { id: 'check-purchase', source: { tableId: 'rule_checks', fieldId: 'purchase_id' }, target: { tableId: 'purchases', fieldId: 'id' }, type: 'many-to-one' },
       { id: 'paypal-purchase', source: { tableId: 'paypal_transactions', fieldId: 'purchase_id' }, target: { tableId: 'purchases', fieldId: 'id' }, type: 'many-to-one' },
@@ -203,7 +226,8 @@ const PROMPT_STARTERS: AgAiPromptStarter[] = [
 const GUARDIAN = `
 You are also Allowance's Guardian: the human's control room for AI agents that spend their PayPal money.
 Tables: purchases (one row per agent payment request, with how it was decided), line_items, rule_checks,
-agents, and paypal_transactions (PayPal Transaction Search; can lag behind in the sandbox). Amounts are USD.
+business_actions (refunds/invoices business agents tried to run on the store's PayPal via PayPal's Agent Toolkit), agents,
+and paypal_transactions (PayPal Transaction Search; can lag behind in the sandbox). Amounts are USD.
 Use the dashboard tools to answer questions and build charts. You can also act through Allowance tools:
 freeze_agent, unfreeze_agent, refund_purchase, change_agent_rules, explain_purchase, reconcile_with_paypal.
 Every action asks the human to confirm in the app; if a tool reports it was cancelled, say so and stop.
@@ -273,11 +297,11 @@ function allowanceTools(studioApi: AgStudioApi, ctx: Ctx): AgAiTool[] {
         const agent = await findAgent(args.agent);
         if (!agent) return c.error(`No agent named ${args.agent}.`);
         const text = `${agent.mandateText}\nUpdate: ${args.change}`;
-        const compiled = await api<CompiledMandate>('/api/mandates/compile', { method: 'POST', json: { agentName: agent.name, agentRole: agent.role, text } });
+        const compiled = await api<CompiledMandate>('/api/mandates/compile', { method: 'POST', json: { agentName: agent.name, agentRole: agent.role, text, kind: agent.kind } });
         const before = agent.policy.summary;
         if (!(await ctx.confirm({ title: `Update ${agent.name}'s rules?`, body: `Before: ${before}\n\nAfter: ${compiled.policy.summary}`, confirmLabel: 'Save rules' })))
           return c.error('The human cancelled this action.');
-        await api(`/api/agents/${agent.id}`, { method: 'PATCH', json: { mandateText: text, policy: compiled.policy } });
+        await api(`/api/agents/${agent.id}`, { method: 'PATCH', json: { mandateText: text, ...(agent.kind === 'business' ? { opsPolicy: compiled.policy } : { policy: compiled.policy }) } });
         await ctx.reload();
         return c.success(`Saved. ${compiled.policy.summary}`, { policy: compiled.policy });
       },

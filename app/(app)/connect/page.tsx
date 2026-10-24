@@ -65,8 +65,9 @@ export default function ConnectPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Connect an agent</h1>
         <p className="mt-1 text-sm text-ink-2">
-          Allowance is a remote MCP server. Any MCP-capable agent gets six tools (get_allowance, list_merchants, request_payment, get_payment_status, list_my_payments, request_refund)
-          and can only ever spend its own allowance.
+          Allowance is a remote MCP server. Shopping agents get get_allowance, list_merchants, request_payment, get_payment_status, list_my_payments and request_refund.
+          Business agents get PayPal&apos;s own Agent Toolkit tools (get_order, create_refund, create_and_send_invoice, disputes) with Allowance in front of every action.
+          Either way, an agent only ever sees its own rules.
         </p>
       </div>
 
