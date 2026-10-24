@@ -19,6 +19,7 @@ export async function pushApprovalRequest(opts: {
   try {
     await fetch(`https://ntfy.sh/${encodeURIComponent(opts.topic)}`, {
       method: 'POST',
+      signal: AbortSignal.timeout(8_000),
       headers: {
         Title: `${opts.agentName} wants to spend ${formatUsd(opts.amountCents)}`,
         Tags: 'moneybag',

@@ -207,7 +207,8 @@ export async function requestPayment(agent: Agent, raw: unknown): Promise<AgentP
 
     if (status === 'pending_approval') {
       const reason = req.policyChecks.find((c) => c.outcome === 'approval')?.detail ?? audit.explanation;
-      await pushApprovalRequest({
+      // Fire-and-forget: a slow push service must never delay the agent's answer.
+      void pushApprovalRequest({
         topic: user.ntfyTopic,
         requestId: req.id,
         approvalToken: req.approvalToken!,
