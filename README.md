@@ -156,10 +156,12 @@ Optional: install the [ntfy](https://ntfy.sh) app, subscribe to a private topic,
 **Checks**
 
 ```bash
-npm test                 # policy engine and auditor-combination unit tests
+npm test                 # policy engine, auditor combination and webhook handling (25 tests)
 npm run typecheck
 npm run spike -- token   # PayPal sandbox spike: token, vault-start, vault-finish, charge, payout, refund
 ```
+
+**Pre-launch review.** The integration was checked against the PayPal AI Toolkit's `paypal:doctor` checklist (credentials, tokens, Orders, webhooks, environment): no secrets in git history or the client bundle, cached tokens refreshed from `expires_in`, `PayPal-Request-Id` on every POST, backoff on 429/5xx, `debug_id` logged, webhooks verified and acknowledged before processing (`after()`), `PAYMENT.CAPTURE.COMPLETED` handled, and declines (`INSTRUMENT_DECLINED`, `TRANSACTION_REFUSED`, `PAYER_ACTION_REQUIRED`) reported to the human without retrying.
 
 ## Deploy (free)
 

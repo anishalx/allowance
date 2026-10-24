@@ -226,6 +226,15 @@ export async function requestPayment(agent: Agent, raw: unknown): Promise<AgentP
 
 // ── Money movement ─────────────────────────────────────────────────────────────────────────
 
+// PayPal outcomes a human can act on. None of these are retried: a decline needs a person, not another attempt.
+const PAYPAL_ISSUES: Record<string, string> = {
+  INSTRUMENT_DECLINED: 'PayPal declined the funding source on the linked wallet. The account holder needs to update their PayPal payment method.',
+  TRANSACTION_REFUSED: 'PayPal refused this transaction in its risk checks.',
+  PAYER_ACTION_REQUIRED: 'PayPal needs the account holder to re-approve the saved wallet. Re-link PayPal on the dashboard.',
+  PAYER_CANNOT_PAY: 'The linked PayPal account cannot pay right now (no usable funding source).',
+  PAYEE_ACCOUNT_RESTRICTED: 'The merchant\'s PayPal account is restricted and cannot receive this payment.',
+};
+
 async function execute(req: PaymentRequest): Promise<PaymentRequest> {
   const wallet = await activeWallet(req.userId);
   const [agent] = await db.select().from(agents).where(eq(agents.id, req.agentId));
@@ -241,7 +250,8 @@ async function execute(req: PaymentRequest): Promise<PaymentRequest> {
       items: req.items.map((i) => ({ name: i.name, quantity: i.quantity, unitPriceCents: toCents(i.unitPrice) })),
     });
     if (charge.captureStatus !== 'COMPLETED' && charge.captureStatus !== 'PENDING') {
-      return transition(req, { status: 'failed', paypalOrderId: charge.orderId, error: `Capture ${charge.captureStatus}` }, 'payment.failed', `PayPal capture ${charge.captureStatus}.`);
+      const error = charge.orderStatus === 'PAYER_ACTION_REQUIRED' ? PAYPAL_ISSUES.PAYER_ACTION_REQUIRED : `PayPal capture ${charge.captureStatus ?? charge.orderStatus}.`;
+      return transition(req, { status: 'failed', paypalOrderId: charge.orderId, error }, 'payment.failed', error);
     }
     let paid = await transition(
       req,
@@ -268,7 +278,10 @@ async function execute(req: PaymentRequest): Promise<PaymentRequest> {
     setTimeout(() => syncPayout(req.id).catch(() => {}), 8_000);
     return paid;
   } catch (err) {
-    const message = err instanceof PayPalError ? `${err.issue}${err.debugId ? ` (debug_id ${err.debugId})` : ''}` : (err as Error).message;
+    const message =
+      err instanceof PayPalError
+        ? `${PAYPAL_ISSUES[err.issue] ?? err.issue}${err.debugId ? ` (debug_id ${err.debugId})` : ''}`
+        : (err as Error).message;
     const [current] = await db.select().from(paymentRequests).where(eq(paymentRequests.id, req.id));
     // A failed payout after a successful charge is a settlement problem, not a failed purchase.
     if (current.status === 'paid') return transition(current, { payoutStatus: 'FAILED', error: message }, 'payout.failed', `Merchant payout failed: ${message}`);

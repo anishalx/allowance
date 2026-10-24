@@ -31,6 +31,24 @@ export async function handleWebhook(event: WebhookEvent, verified: boolean) {
       if (req) await syncPayout(req.id, 99);
       break;
     }
+    case 'PAYMENT.CAPTURE.COMPLETED': {
+      // PayPal's asynchronous confirmation of a capture we made (custom_id = our request id).
+      const req = await byId(r.custom_id ?? r.invoice_id);
+      if (req) {
+        if (req.status === 'processing') {
+          await db.update(paymentRequests).set({ status: 'paid', captureId: r.id }).where(eq(paymentRequests.id, req.id));
+        }
+        await record({
+          userId: req.userId,
+          agentId: req.agentId,
+          requestId: req.id,
+          type: 'payment.confirmed',
+          message: `PayPal webhook confirmed the ${formatUsd(req.amountCents)} capture at ${req.merchant.name}.`,
+          data: { captureId: r.id },
+        });
+      }
+      break;
+    }
     case 'PAYMENT.CAPTURE.REFUNDED': {
       const captureId = r.links?.find((l: { rel: string }) => l.rel === 'up')?.href?.split('/').pop();
       const req = await byCapture(captureId);

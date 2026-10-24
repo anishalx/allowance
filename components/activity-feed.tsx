@@ -12,6 +12,7 @@ const ICONS: Record<string, { icon: typeof Check; cls: string }> = {
   'request.denied': { icon: Ban, cls: 'text-deny bg-deny-soft' },
   'request.expired': { icon: Ban, cls: 'text-ink-3 bg-surface-2' },
   'payment.captured': { icon: Wallet, cls: 'text-allow bg-allow-soft' },
+  'payment.confirmed': { icon: Check, cls: 'text-allow bg-allow-soft' },
   'payout.created': { icon: Send, cls: 'text-ink-2 bg-surface-2' },
   'payout.settled': { icon: Send, cls: 'text-allow bg-allow-soft' },
   'payout.failed': { icon: CircleAlert, cls: 'text-deny bg-deny-soft' },
