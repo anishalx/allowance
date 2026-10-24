@@ -14,7 +14,7 @@ export const POST = route(async (_req: Request, ctx: RouteContext<'/api/agents/[
   const [agent] = await db
     .update(agents)
     .set({ apiKeyHash: hash, apiKeyPrefix: prefix })
-    .where(and(eq(agents.id, id), eq(agents.userId, currentUserId())))
+    .where(and(eq(agents.id, id), eq(agents.userId, await currentUserId())))
     .returning();
   if (!agent) return Response.json({ error: 'Not found' }, { status: 404 });
   await record({ userId: agent.userId, agentId: id, type: 'agent.key_rotated', message: `New API key issued for ${agent.name}; the old one no longer works.` });

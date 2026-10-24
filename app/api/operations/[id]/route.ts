@@ -2,6 +2,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
+import { isMine } from '@/lib/households';
 import { route } from '@/lib/http';
 import { getOperation } from '@/lib/ops/service';
 
@@ -14,7 +15,7 @@ export const GET = route(async (req: Request, ctx: RouteContext<'/api/operations
     op &&
     (op.approvalToken
       ? token && token.length === op.approvalToken.length && timingSafeEqual(Buffer.from(token), Buffer.from(op.approvalToken))
-      : req.headers.get('sec-fetch-site') === 'same-origin');
+      : req.headers.get('sec-fetch-site') === 'same-origin' && (await isMine(op.userId)));
   if (!op || !ok) return Response.json({ error: 'Not found or link expired' }, { status: 404 });
   const [agent] = await db.select({ name: agents.name }).from(agents).where(eq(agents.id, op.agentId));
   const { approvalToken: _secret, ...safe } = op;

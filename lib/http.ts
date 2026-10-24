@@ -1,7 +1,17 @@
 import { ZodError, prettifyError } from 'zod';
 import { PayPalError } from './paypal/client';
 
+export class HttpError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
 export function errorResponse(err: unknown) {
+  if (err instanceof HttpError) return Response.json({ error: err.message }, { status: err.status });
   if (err instanceof ZodError) return Response.json({ error: prettifyError(err) }, { status: 400 });
   if (err instanceof PayPalError) return Response.json({ error: err.message, issue: err.issue, debugId: err.debugId }, { status: 502 });
   console.error(err);

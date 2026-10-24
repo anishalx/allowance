@@ -11,7 +11,7 @@ const day = (d: Date) => d.toISOString().slice(0, 10);
 
 export async function getConsoleData() {
   await dbReady();
-  const userId = currentUserId();
+  const userId = await currentUserId();
   const agentRows = await db.select().from(agents).where(eq(agents.userId, userId));
   const requests = await db.select().from(paymentRequests).where(eq(paymentRequests.userId, userId)).orderBy(desc(paymentRequests.createdAt));
   const agentName = new Map(agentRows.map((a) => [a.id, a.name]));

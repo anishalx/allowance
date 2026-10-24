@@ -97,7 +97,8 @@ const helpdeskOps: OpsPolicy = {
   notes: ['Only refund the customer who paid for the order.'],
 };
 
-const AGENTS = [
+// Starting agents for every household. Visitor households get copies with their own ids.
+export const SEED_AGENTS = [
   {
     id: 'a_pantry',
     name: 'Pantry',
@@ -127,7 +128,7 @@ const AGENTS = [
 export async function seed(db: Db) {
   await db.insert(users).values({ id: DEMO_USER_ID, name: 'Demo household' }).onConflictDoNothing();
   await db.insert(merchants).values(MERCHANTS.map((m) => ({ ...m, verified: true }))).onConflictDoNothing();
-  for (const a of AGENTS) {
+  for (const a of SEED_AGENTS) {
     // A fresh key per database; rotate it in the UI to connect an external agent.
     const { hash, prefix } = generateAgentKey();
     await db.insert(agents).values({ ...a, userId: DEMO_USER_ID, apiKeyHash: hash, apiKeyPrefix: prefix }).onConflictDoNothing();

@@ -6,6 +6,7 @@ import { newId } from '../agents/keys';
 import { db, dbReady } from '../db';
 import { agents, operations, users, wallets, type Agent, type Operation, type OperationStatus } from '../db/schema';
 import { bus, record } from '../events';
+import { activeWallet } from '../households';
 import { pushApprovalRequest } from '../notify';
 import { paypal, PayPalError } from '../paypal/client';
 import { formatUsd, toCents } from '../policy/engine';
@@ -77,7 +78,8 @@ async function disputeFacts(disputeId: string) {
 
 async function isKnownCustomer(userId: string, email: string) {
   const rows = await db.select({ payerEmail: wallets.payerEmail }).from(wallets).where(eq(wallets.userId, userId));
-  return rows.some((w) => w.payerEmail?.toLowerCase() === email.toLowerCase());
+  const current = await activeWallet(userId); // a visitor household's shared sandbox wallet has its email only here
+  return [...rows, current].some((w) => w?.payerEmail?.toLowerCase() === email.toLowerCase());
 }
 
 async function recentOps(agentId: string) {

@@ -6,6 +6,7 @@ import { useMemo, useRef, useState } from 'react';
 import { OperationApprovalCard } from '@/components/operation-views';
 import { ApprovalCard } from '@/components/request-views';
 import { Button, Card, Chip, SectionTitle, Spinner, StatusChip } from '@/components/ui';
+import { DemoBanner } from '@/components/demo-banner';
 import { api, useDashboard } from '@/components/use-dashboard';
 import type { AgentStep } from '@/lib/agent/demo-agent';
 
@@ -186,17 +187,18 @@ export default function PlaygroundPage() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const abort = useRef<AbortController | null>(null);
 
-  const agent = state?.agents.find((a) => a.id === preset.agentId);
+  // Public-demo visitors get copies of the starting agents with ids like a_pantry_<household>.
+  const agent = state?.agents.find((a) => a.id === preset.agentId || a.id.startsWith(`${preset.agentId}_`));
   const since = (iso: string) => !startedAt || new Date(iso).getTime() >= startedAt - 1000;
   const pending = useMemo(
-    () => (state?.requests ?? []).filter((r) => r.status === 'pending_approval' && r.agentId === preset.agentId && since(r.createdAt)),
+    () => (state?.requests ?? []).filter((r) => r.status === 'pending_approval' && r.agentId === agent?.id && since(r.createdAt)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, preset.agentId, startedAt],
+    [state, agent?.id, startedAt],
   );
   const pendingOps = useMemo(
-    () => (state?.operations ?? []).filter((o) => o.status === 'pending_approval' && o.agentId === preset.agentId && since(o.createdAt)),
+    () => (state?.operations ?? []).filter((o) => o.status === 'pending_approval' && o.agentId === agent?.id && since(o.createdAt)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, preset.agentId, startedAt],
+    [state, agent?.id, startedAt],
   );
 
   function choose(id: string) {
@@ -214,7 +216,7 @@ export default function PlaygroundPage() {
       const res = await fetch('/api/demo/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: preset.agentId, task, model }),
+        body: JSON.stringify({ agentId: agent?.id, task, model }),
         signal: abort.current.signal,
       });
       if (!res.ok || !res.body) throw new Error((await res.json().catch(() => ({}))).error ?? res.statusText);
@@ -242,6 +244,13 @@ export default function PlaygroundPage() {
 
   return (
     <div className="space-y-6">
+      <DemoBanner
+        household={state?.household}
+        onReset={() => {
+          setSteps([]);
+          refresh();
+        }}
+      />
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Agent playground</h1>
         <p className="mt-1 text-sm text-ink-2">
@@ -320,7 +329,7 @@ export default function PlaygroundPage() {
             type="button"
             disabled={running}
             onClick={async () => {
-              if (!confirm('Clear purchase history and activity so budgets start fresh? The wallet and agents stay.')) return;
+              if (!confirm('Start the demo over? History is cleared and the starting agents get their original rules back.')) return;
               await api('/api/demo/reset', { method: 'POST' });
               setSteps([]);
               refresh();

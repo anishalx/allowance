@@ -1,17 +1,17 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db, dbReady } from './db';
-import { agents, events, merchants, operations, paymentRequests, users, wallets } from './db/schema';
+import { agents, events, merchants, operations, paymentRequests, users } from './db/schema';
 import { getOperation, opsSummary } from './ops/service';
-import { DEMO_USER_ID } from './db/seed';
+import { activeWallet, currentUserId, householdKind } from './households';
 import { allowanceSummary, getRequest } from './payments/service';
 
-export const currentUserId = () => DEMO_USER_ID; // single demo household; real accounts are out of scope
+export { currentUserId };
 
 export async function getDashboardState() {
   await dbReady();
-  const userId = currentUserId();
+  const userId = await currentUserId();
   const [user] = await db.select().from(users).where(eq(users.id, userId));
-  const [wallet] = await db.select().from(wallets).where(and(eq(wallets.userId, userId), eq(wallets.status, 'active'))).limit(1);
+  const wallet = await activeWallet(userId);
   const agentRows = await db.select().from(agents).where(eq(agents.userId, userId)).orderBy(agents.createdAt);
   const requestRows = await db.select().from(paymentRequests).where(eq(paymentRequests.userId, userId)).orderBy(desc(paymentRequests.createdAt)).limit(100);
   // Lazily expire stale approvals so the inbox is honest.
@@ -32,7 +32,8 @@ export async function getDashboardState() {
 
   return {
     user: { name: user.name, ntfyTopic: user.ntfyTopic },
-    wallet: wallet ? { payerEmail: wallet.payerEmail, linkedAt: wallet.updatedAt.toISOString() } : null,
+    household: householdKind(userId),
+    wallet: wallet ? { payerEmail: wallet.payerEmail, linkedAt: wallet.updatedAt.toISOString(), shared: wallet.shared } : null,
     agents: await Promise.all(
       agentRows.map(async (a) => ({
         id: a.id,

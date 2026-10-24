@@ -14,8 +14,12 @@ export function WalletCard({ wallet, onChanged }: { wallet: DashboardState['wall
     setBusy(true);
     setError(null);
     try {
-      const { approveUrl } = await api<{ approveUrl: string }>('/api/wallet/link', { method: 'POST' });
-      window.location.href = approveUrl;
+      const { approveUrl } = await api<{ approveUrl?: string }>('/api/wallet/link', { method: 'POST' });
+      if (approveUrl) window.location.href = approveUrl;
+      else {
+        onChanged(); // public demo: the shared sandbox wallet switched back on, no PayPal login needed
+        setBusy(false);
+      }
     } catch (err) {
       setError((err as Error).message);
       setBusy(false);
@@ -64,7 +68,9 @@ export function WalletCard({ wallet, onChanged }: { wallet: DashboardState['wall
         <div className="min-w-0">
           <h3 className="font-semibold">PayPal wallet linked</h3>
           <p className="mt-0.5 truncate text-sm text-ink-2">{wallet.payerEmail}</p>
-          <p className="mt-1 text-xs text-ink-3">Saved with PayPal Vault · agents spend only through Allowance</p>
+          <p className="mt-1 text-xs text-ink-3">
+            {wallet.shared ? 'Shared sandbox wallet for the public demo' : 'Saved with PayPal Vault'} · agents spend only through Allowance
+          </p>
         </div>
       </div>
       <Button variant="secondary" onClick={unlink} disabled={busy} className="text-deny">

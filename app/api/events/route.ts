@@ -2,11 +2,17 @@ import { currentUserId } from '@/lib/dashboard';
 import { dbReady } from '@/lib/db';
 import type { EventRow } from '@/lib/db/schema';
 import { bus } from '@/lib/events';
+import { errorResponse } from '@/lib/http';
 
 // Server-sent events: the dashboard re-fetches state whenever something happens.
 export async function GET(req: Request) {
   await dbReady();
-  const userId = currentUserId();
+  let userId: string;
+  try {
+    userId = await currentUserId();
+  } catch (err) {
+    return errorResponse(err);
+  }
   const encoder = new TextEncoder();
   let cleanup = () => {};
 

@@ -11,6 +11,7 @@ import { ApprovalCard, DecisionTrace, MerchantLabel, RiskBadge } from '@/compone
 import { Card, SectionTitle, Spinner, StatusChip } from '@/components/ui';
 import { api, useDashboard } from '@/components/use-dashboard';
 import { WalletCard } from '@/components/wallet-card';
+import { DemoBanner } from '@/components/demo-banner';
 import { timeAgo, usd } from '@/lib/format';
 
 const LINK_MESSAGES: Record<string, { text: string; tone: 'allow' | 'deny' }> = {
@@ -100,6 +101,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
+      <DemoBanner household={state.household} onReset={refresh} />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Your agents&apos; allowance</h1>

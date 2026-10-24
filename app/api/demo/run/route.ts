@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   try {
     await dbReady();
     const input = RunInput.parse(await req.json());
-    const [agent] = await db.select().from(agents).where(and(eq(agents.id, input.agentId), eq(agents.userId, currentUserId())));
+    const [agent] = await db.select().from(agents).where(and(eq(agents.id, input.agentId), eq(agents.userId, await currentUserId())));
     if (!agent) return Response.json({ error: 'Agent not found' }, { status: 404 });
 
     const encoder = new TextEncoder();

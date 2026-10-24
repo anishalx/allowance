@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto';
+import { isMine } from '@/lib/households';
 import { route } from '@/lib/http';
 import { appUrl } from '@/lib/notify';
 import { decideOperation, getOperation, toAgentOpResult } from '@/lib/ops/service';
@@ -20,7 +21,7 @@ export const POST = route(async (req: Request, ctx: RouteContext<'/api/operation
   const op = await getOperation(id);
   if (!op) return Response.json({ error: 'Not found' }, { status: 404 });
   const viaToken = tokenMatches(body.token ?? url.searchParams.get('token'), op.approvalToken);
-  if (!viaToken && !sameOrigin(req)) return Response.json({ error: 'Not allowed' }, { status: 403 });
+  if (!viaToken && !(sameOrigin(req) && (await isMine(op.userId)))) return Response.json({ error: 'Not allowed' }, { status: 403 });
 
   return Response.json(toAgentOpResult(await decideOperation(id, action, viaToken ? 'phone' : 'dashboard')));
 });

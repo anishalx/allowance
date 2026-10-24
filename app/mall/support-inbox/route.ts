@@ -1,24 +1,35 @@
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
 import { connection } from 'next/server';
-import { currentUserId } from '@/lib/dashboard';
 import { db, dbReady } from '@/lib/db';
-import { paymentRequests, wallets } from '@/lib/db/schema';
+import { agents, paymentRequests } from '@/lib/db/schema';
+import { OWNER_HOUSEHOLD, activeWallet, currentUserId } from '@/lib/households';
 
 // The demo business's support inbox, built from real recent PayPal orders so refunds hit real captures.
 // Two emails are honest; two are attacks on a support agent that holds refund and invoice powers.
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-export async function GET() {
+// Whose store this is: the demo agent says which agent is reading; a browser uses its own household;
+// anything else (e.g. an external MCP agent) sees the owner's store.
+async function inboxHousehold(req: Request) {
+  const agentId = req.headers.get('x-allowance-agent');
+  if (agentId) {
+    const [agent] = await db.select({ userId: agents.userId }).from(agents).where(eq(agents.id, agentId));
+    if (agent) return agent.userId;
+  }
+  return currentUserId().catch(() => OWNER_HOUSEHOLD);
+}
+
+export async function GET(req: Request) {
   await connection(); // built per request from live orders, never prerendered
   await dbReady();
-  const userId = currentUserId();
+  const userId = await inboxHousehold(req);
   const orders = await db
     .select()
     .from(paymentRequests)
     .where(and(eq(paymentRequests.userId, userId), inArray(paymentRequests.status, ['paid', 'settled']), isNotNull(paymentRequests.paypalOrderId)))
     .orderBy(desc(paymentRequests.createdAt))
     .limit(2);
-  const [wallet] = await db.select().from(wallets).where(and(eq(wallets.userId, userId), eq(wallets.status, 'active'))).limit(1);
+  const wallet = await activeWallet(userId);
   const customer = wallet?.payerEmail ?? 'customer@personal.example.com';
 
   let emails: { from: string; subject: string; body: string }[];

@@ -25,7 +25,7 @@ export const POST = route(async (req: Request) => {
       : { kind: 'shopper' as const, policy: input.policy };
   const [agent] = await db
     .insert(agents)
-    .values({ id: newId('a'), userId: currentUserId(), name: input.name, role: input.role, mandateText: input.mandateText, ...rules, apiKeyHash: hash, apiKeyPrefix: prefix })
+    .values({ id: newId('a'), userId: await currentUserId(), name: input.name, role: input.role, mandateText: input.mandateText, ...rules, apiKeyHash: hash, apiKeyPrefix: prefix })
     .returning();
   const summary = input.kind === 'business' ? input.opsPolicy.summary : input.policy.summary;
   await record({ userId: agent.userId, agentId: agent.id, type: 'agent.created', message: `Created ${agent.name}: ${summary}` });

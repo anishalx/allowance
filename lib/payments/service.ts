@@ -16,6 +16,7 @@ import {
   type RequestStatus,
 } from '../db/schema';
 import { bus, record } from '../events';
+import { activeWallet } from '../households';
 import { pushApprovalRequest } from '../notify';
 import { chargeVaultedWallet, getPayoutBatch, payMerchant, refundCapture } from '../paypal/api';
 import { PayPalError } from '../paypal/client';
@@ -45,11 +46,6 @@ function withAgentLock<T>(agentId: string, fn: () => Promise<T>): Promise<T> {
   const next = prev.catch(() => {}).then(fn);
   locks.set(agentId, next);
   return next.finally(() => locks.get(agentId) === next && locks.delete(agentId));
-}
-
-async function activeWallet(userId: string) {
-  const [w] = await db.select().from(wallets).where(and(eq(wallets.userId, userId), eq(wallets.status, 'active'))).limit(1);
-  return w ?? null;
 }
 
 async function resolveMerchant(input: PaymentRequestInput): Promise<MerchantSnapshot> {

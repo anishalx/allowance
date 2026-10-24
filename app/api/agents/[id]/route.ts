@@ -19,7 +19,7 @@ export const PATCH = route(async (req: Request, ctx: RouteContext<'/api/agents/[
   await dbReady();
   const { id } = await ctx.params;
   const patch = UpdateAgent.parse(await req.json());
-  const [agent] = await db.select().from(agents).where(and(eq(agents.id, id), eq(agents.userId, currentUserId())));
+  const [agent] = await db.select().from(agents).where(and(eq(agents.id, id), eq(agents.userId, await currentUserId())));
   if (!agent) return Response.json({ error: 'Not found' }, { status: 404 });
 
   const [updated] = await db

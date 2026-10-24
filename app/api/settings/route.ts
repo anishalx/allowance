@@ -16,6 +16,6 @@ const Settings = z.object({
 export const PATCH = route(async (req: Request) => {
   await dbReady();
   const { ntfyTopic } = Settings.parse(await req.json());
-  await db.update(users).set({ ntfyTopic }).where(eq(users.id, currentUserId()));
+  await db.update(users).set({ ntfyTopic }).where(eq(users.id, await currentUserId()));
   return Response.json({ ok: true });
 });

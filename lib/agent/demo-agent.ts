@@ -38,12 +38,13 @@ export function htmlToText(html: string) {
     .trim();
 }
 
-async function browse(url: string) {
+async function browse(url: string, agentId: string) {
   const target = new URL(url, appUrl());
   if (target.origin !== new URL(appUrl()).origin || !target.pathname.startsWith('/mall')) {
     return 'Only the Agent Mall demo stores (/mall/...) can be browsed in this demo.';
   }
-  const res = await fetch(target, { headers: { 'User-Agent': 'AllowanceDemoAgent/1.0' } });
+  // The agent id tells the support inbox whose store this is; the model never sees it.
+  const res = await fetch(target, { headers: { 'User-Agent': 'AllowanceDemoAgent/1.0', 'X-Allowance-Agent': agentId } });
   if (!res.ok) return `HTTP ${res.status} for ${target.pathname}`;
   const html = await res.text();
   const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0] ?? html;
@@ -142,7 +143,7 @@ export async function runDemoAgent(opts: { agent: Agent; task: string; model?: A
         const args = JSON.parse(call.arguments || '{}');
         let output: string;
         if (call.name === 'browse_web') {
-          const text = await browse(args.url);
+          const text = await browse(args.url, agent.id);
           onStep({ kind: 'browse', url: args.url, chars: text.length, preview: text.slice(0, 1200) });
           output = text;
         } else {
