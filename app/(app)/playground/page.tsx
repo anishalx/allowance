@@ -51,19 +51,26 @@ function StepView({ step }: { step: Step }) {
   switch (step.kind) {
     case 'status':
       return <p className="text-xs text-ink-3">{step.text}</p>;
-    case 'thinking':
+    case 'thinking': {
+      // Reasoning summaries arrive as "**Title** body"; show the title in bold instead of raw markdown.
+      const [, title, rest] = step.text.match(/^\*\*(.+?)\*\*\s*([\s\S]*)$/) ?? [null, null, step.text];
       return (
-        <p className="flex items-start gap-2 text-sm text-ink-2 italic">
-          <Brain className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" /> {step.text}
+        <p className="flex items-start gap-2 text-sm text-ink-2">
+          <Brain className="mt-0.5 h-4 w-4 shrink-0 text-ink-3" aria-hidden="true" />
+          <span>
+            {title && <span className="font-medium text-ink">{title}. </span>}
+            <span className="italic">{rest}</span>
+          </span>
         </p>
       );
+    }
     case 'browse': {
       const injected = INJECTION_MARKER.test(step.preview);
       return (
         <details className={clsx('rounded-xl border p-3 text-sm', injected ? 'border-deny/40 bg-deny-soft' : 'border-line bg-surface-2')} open={injected}>
-          <summary className="flex cursor-pointer items-center gap-2">
+          <summary className="flex cursor-pointer flex-wrap items-center gap-2">
             <Globe className="h-4 w-4 text-ink-2" aria-hidden="true" />
-            Read <span className="font-mono text-xs">{step.url}</span>
+            Read <span className="min-w-0 truncate font-mono text-xs">{step.url.replace(/^https?:\/\/[^/]+/, '')}</span>
             {injected && (
               <Chip tone="deny" className="ml-auto">
                 <ShieldAlert className="h-3 w-3" aria-hidden="true" /> Hidden instructions in page text

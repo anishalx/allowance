@@ -125,10 +125,10 @@ export function ApprovalCard({ request, agentName, token, onDone }: { request: D
 
       {error && <p className="mt-3 text-sm text-deny">{error}</p>}
       <div className="mt-5 grid grid-cols-2 gap-3">
-        <Button variant="secondary" size="lg" disabled={!!busy} onClick={() => decide('deny')}>
+        <Button variant="secondary" size="lg" className="px-3 whitespace-nowrap" disabled={!!busy} onClick={() => decide('deny')}>
           {busy === 'deny' ? <Spinner /> : <X className="h-4 w-4" aria-hidden="true" />} Deny
         </Button>
-        <Button variant="allow" size="lg" disabled={!!busy} onClick={() => decide('approve')}>
+        <Button variant="allow" size="lg" className="px-3 whitespace-nowrap" disabled={!!busy} onClick={() => decide('approve')}>
           {busy === 'approve' ? <Spinner /> : <Check className="h-4 w-4" aria-hidden="true" />} Approve &amp; pay
         </Button>
       </div>
