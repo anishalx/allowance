@@ -14,7 +14,8 @@ Every payment request goes through a deterministic policy engine and an AI audit
 - [x] Sandbox spike (`scripts/paypal-spike.mjs`): OAuth, Vault v3 setup token → payment token
 - [x] Charge a vaulted wallet with no buyer present (Orders v2 + `vault_id`, captured instantly)
 - [x] Refund a capture, Payouts batch to a PayPal account
-- [ ] Direct-to-merchant charge (payee override) to a third-party sandbox business
+- [x] Merchant routing: vault tokens are scoped to the vaulting merchant (payee override → `BILLING_AGREEMENT_NOT_FOUND`),
+      so Allowance charges the wallet, then settles the merchant via Payouts (verified: $23.75 charge → $23.75 payout SUCCESS)
 - [ ] Webhooks
 - [ ] Policy compiler + engine, AI auditor, MCP server
 - [ ] Web app + AG Studio console
