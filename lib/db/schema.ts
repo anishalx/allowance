@@ -88,6 +88,7 @@ export const paymentRequests = sqliteTable(
     decidedBy: text('decided_by', { enum: ['policy', 'auditor', 'human', 'timeout'] }).notNull(),
     status: text('status', { enum: REQUEST_STATUSES }).notNull(),
     approvalExpiresAt: integer('approval_expires_at', { mode: 'timestamp_ms' }),
+    approvalToken: text('approval_token'), // capability for one-tap approve/deny links (phone push)
     paypalOrderId: text('paypal_order_id'),
     captureId: text('capture_id'),
     payoutBatchId: text('payout_batch_id'),
