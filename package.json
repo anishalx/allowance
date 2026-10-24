@@ -10,7 +10,8 @@
     "test": "vitest run",
     "typecheck": "next typegen && tsc --noEmit",
     "db:push": "drizzle-kit push",
-    "spike": "node --env-file=.env scripts/paypal-spike.mjs"
+    "spike": "node --env-file=.env scripts/paypal-spike.mjs",
+    "smoke": "node --network-family-autoselection-attempt-timeout=3000 scripts/smoke-live.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",
