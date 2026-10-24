@@ -1,11 +1,11 @@
 'use client';
 
 import clsx from 'clsx';
-import { Bot, Brain, ExternalLink, Globe, Play, ShieldAlert, Square, Wrench } from 'lucide-react';
+import { Bot, Brain, ExternalLink, Globe, Play, RotateCcw, ShieldAlert, Square, Wrench } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { ApprovalCard } from '@/components/request-views';
 import { Button, Card, Chip, SectionTitle, Spinner, StatusChip } from '@/components/ui';
-import { useDashboard } from '@/components/use-dashboard';
+import { api, useDashboard } from '@/components/use-dashboard';
 import type { AgentStep } from '@/lib/agent/demo-agent';
 
 type Step = AgentStep & { at: number };
@@ -33,7 +33,7 @@ const PRESETS = [
     agentId: 'a_pantry',
     mode: 'normal' as const,
     task: 'We are hosting a party tonight. From FreshCart (/mall/freshcart) buy 4 bottles of pinot noir and 6 bags of coffee.',
-    note: 'Wine is blocked and the cart blows the weekly limit. See which rules fire.',
+    note: 'Wine is blocked and the cart blows the weekly limit. Watch the agent read its allowance and adapt.',
   },
   {
     id: 'ebook',
@@ -256,6 +256,19 @@ export default function PlaygroundPage() {
           <a href="/mall/freshcart/deals" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-ink-2 underline">
             See the deals page as a human sees it <ExternalLink className="h-3 w-3" aria-hidden="true" />
           </a>
+          <button
+            type="button"
+            disabled={running}
+            onClick={async () => {
+              if (!confirm('Clear purchase history and activity so budgets start fresh? The wallet and agents stay.')) return;
+              await api('/api/demo/reset', { method: 'POST' });
+              setSteps([]);
+              refresh();
+            }}
+            className="flex items-center gap-1 text-xs text-ink-3 hover:text-ink disabled:opacity-50"
+          >
+            <RotateCcw className="h-3 w-3" aria-hidden="true" /> Reset demo data
+          </button>
         </Card>
 
         <Card className="min-h-[480px] p-4">

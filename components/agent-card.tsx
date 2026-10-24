@@ -57,7 +57,7 @@ export function AgentCard({ agent, onChanged }: { agent: DashboardAgent; onChang
         {a.perPurchaseMax && <Chip>Max {a.perPurchaseMax} each</Chip>}
         {a.blockedCategories.slice(0, 4).map((c) => (
           <Chip key={c} tone="deny">
-            No {titleCase(c).toLowerCase().replace(/^books/, 'books')}
+            No {titleCase(c).toLowerCase()}
           </Chip>
         ))}
         {a.blockedCategories.length > 4 && <Chip tone="deny">+{a.blockedCategories.length - 4} more blocked</Chip>}
