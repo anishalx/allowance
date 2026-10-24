@@ -11,9 +11,11 @@ Every payment request goes through a deterministic policy engine and an AI audit
 
 ## Status
 
-- [x] Sandbox spike: OAuth, Vault v3 setup token (`scripts/paypal-spike.mjs`)
-- [ ] Charge a vaulted wallet with no buyer present (agent payment)
-- [ ] Payouts to merchants, refunds, webhooks
+- [x] Sandbox spike (`scripts/paypal-spike.mjs`): OAuth, Vault v3 setup token → payment token
+- [x] Charge a vaulted wallet with no buyer present (Orders v2 + `vault_id`, captured instantly)
+- [x] Refund a capture, Payouts batch to a PayPal account
+- [ ] Direct-to-merchant charge (payee override) to a third-party sandbox business
+- [ ] Webhooks
 - [ ] Policy compiler + engine, AI auditor, MCP server
 - [ ] Web app + AG Studio console
 
