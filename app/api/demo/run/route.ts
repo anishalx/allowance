@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { runDemoAgent, type AgentStep } from '@/lib/agent/demo-agent';
+import { AGENT_MODELS, runDemoAgent, type AgentStep } from '@/lib/agent/demo-agent';
 import { currentUserId } from '@/lib/dashboard';
 import { db, dbReady } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
@@ -10,7 +10,7 @@ import { rateLimited } from '@/lib/rate-limit';
 const RunInput = z.object({
   agentId: z.string(),
   task: z.string().trim().min(3).max(1000),
-  mode: z.enum(['normal', 'compromised']).default('normal'),
+  model: z.enum(AGENT_MODELS).optional(),
 });
 
 // Streams the demo agent's steps as server-sent events.
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
             // client went away
           }
         };
-        await runDemoAgent({ agent, task: input.task, mode: input.mode, onStep: send, signal: req.signal });
+        await runDemoAgent({ agent, task: input.task, model: input.model, onStep: send, signal: req.signal });
         controller.close();
       },
     });

@@ -55,7 +55,16 @@ export const merchants = sqliteTable('merchants', {
   createdAt: createdAt(),
 });
 
-export type MerchantSnapshot = { id: string | null; name: string; domain: string | null; paypalEmail: string | null; category: Category; verified: boolean };
+export type MerchantSnapshot = {
+  id: string | null;
+  name: string;
+  domain: string | null;
+  paypalEmail: string | null;
+  category: Category;
+  verified: boolean;
+  lookalikeOf?: string | null;
+  requestedPayee?: string | null;
+};
 
 export const REQUEST_STATUSES = [
   'pending_approval', // waiting for the human

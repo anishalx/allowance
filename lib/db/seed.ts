@@ -19,6 +19,14 @@ const MERCHANTS = [
     description: 'Neighborhood grocery delivery.',
   },
   {
+    id: 'm_harvestlane',
+    name: 'Harvest Lane Market',
+    domain: 'harvestlane.example',
+    paypalEmail: merchantEmail('MERCHANT_HARVESTLANE_EMAIL'),
+    category: 'groceries',
+    description: 'Neighborhood market, since 1998.',
+  },
+  {
     id: 'm_greenleaf',
     name: 'GreenLeaf Pharmacy',
     domain: 'greenleaf.example',

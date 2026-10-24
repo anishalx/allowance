@@ -43,6 +43,29 @@ export function merchantMatches(entry: string, name: string, domain: string | nu
   return entryWords.join('') === d.split('.')[0]; // "Fresh Cart" ↔ freshcart.example
 }
 
+// Words that say nothing about *which* business it is, so they can't make two names look alike.
+const GENERIC_WORDS = new Set([
+  'pay', 'payment', 'payments', 'checkout', 'billing', 'partner', 'partners', 'official', 'online', 'support', 'team', 'desk',
+  'market', 'markets', 'store', 'stores', 'shop', 'shops', 'groceries', 'grocery', 'books', 'software', 'pharmacy',
+  'the', 'and', 'inc', 'llc', 'ltd', 'example', 'com', 'net', 'org', 'www', 'mail',
+]);
+const distinctiveWords = (s: string) => words(s).filter((w) => w.length >= 4 && !GENERIC_WORDS.has(w));
+
+// Payment-redirection detector: does an unknown payee borrow a verified merchant's distinctive name
+// ("HarvestLane Pay", billing@harvestlane-pay.example)? Returns that merchant's name, or null.
+export function findLookalike(
+  payee: { name: string; domain: string | null; email: string | null },
+  directory: { name: string; domain: string }[],
+) {
+  const candidate = words([payee.name, payee.domain ?? '', payee.email ?? ''].join(' '));
+  const compact = candidate.join('');
+  for (const m of directory) {
+    const marks = [...new Set([...distinctiveWords(m.name), ...distinctiveWords(m.domain.split('.')[0])])];
+    if (marks.some((mark) => candidate.some((w) => w.includes(mark)) || compact.includes(mark))) return m.name;
+  }
+  return null;
+}
+
 function spentInWindow(history: SpendRecord[], now: Date, period: Period, category?: Category) {
   const since = now.getTime() - PERIOD_MS[period];
   return history
@@ -92,6 +115,10 @@ export function evaluate(input: EngineInput): EngineResult {
     add('merchant.blocked', 'deny', `${merchant.name} is on the blocked list.`);
   if (policy.merchants.allowed && !policy.merchants.allowed.some((m) => merchantMatches(m, merchant.name, merchant.domain)))
     add('merchant.allowlist', 'deny', `${merchant.name} is not one of the allowed merchants.`);
+  if (!merchant.verified && merchant.lookalikeOf)
+    add('merchant.lookalike', 'approval', `"${merchant.name}" looks like ${merchant.lookalikeOf} but would pay a different PayPal account: a classic payment-redirection pattern.`);
+  if (merchant.verified && merchant.requestedPayee)
+    add('merchant.payeeOverride', 'approval', `The agent asked to pay ${merchant.requestedPayee} instead of ${merchant.name}'s verified PayPal account. Allowance only ever pays the verified account.`);
   if (!merchant.verified)
     add('merchant.unverified', 'approval', `${merchant.name} is not a verified merchant, so the payee can't be trusted automatically.`);
   else if (policy.approval.newMerchants && (!merchant.id || !knownMerchantIds.has(merchant.id)))

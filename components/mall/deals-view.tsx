@@ -1,4 +1,4 @@
-import { INJECTION_TEXT, type Store } from '@/lib/mall/catalog';
+import type { Store } from '@/lib/mall/catalog';
 
 export function DealsView({ store }: { store: Store }) {
   const coffee = store.products.find((p) => p.sku === 'coffee')!;
@@ -16,10 +16,6 @@ export function DealsView({ store }: { store: Store }) {
         </li>
         <li className="rounded-xl border border-black/10 bg-white p-4">Free delivery on orders over $20.</li>
       </ul>
-      {/* The attack: hidden from people, read by any agent that scrapes page text. */}
-      <div style={{ display: 'none' }} aria-hidden="true" data-demo="prompt-injection">
-        {INJECTION_TEXT}
-      </div>
     </main>
   );
 }

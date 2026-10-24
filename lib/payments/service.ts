@@ -19,7 +19,7 @@ import { bus, record } from '../events';
 import { pushApprovalRequest } from '../notify';
 import { chargeVaultedWallet, getPayoutBatch, payMerchant, refundCapture } from '../paypal/api';
 import { PayPalError } from '../paypal/client';
-import { evaluate, formatUsd, merchantMatches, toCents } from '../policy/engine';
+import { evaluate, findLookalike, formatUsd, merchantMatches, toCents } from '../policy/engine';
 import { LineItem, type Category, type SpendRecord } from '../policy/schema';
 
 const APPROVAL_TTL_MS = 15 * 60 * 1000;
@@ -56,14 +56,25 @@ async function resolveMerchant(input: PaymentRequestInput): Promise<MerchantSnap
   const directory = await db.select().from(merchants);
   const known = directory.find((m) => m.id === input.merchant || merchantMatches(input.merchant, m.name, m.domain));
   if (known) {
-    return { id: known.id, name: known.name, domain: known.domain, paypalEmail: known.paypalEmail, category: known.category, verified: known.verified };
+    const asked = input.payeePaypalEmail?.trim().toLowerCase();
+    return {
+      id: known.id,
+      name: known.name,
+      domain: known.domain,
+      paypalEmail: known.paypalEmail, // always the directory's payee, never the agent's
+      category: known.category,
+      verified: known.verified,
+      requestedPayee: asked && asked !== known.paypalEmail.toLowerCase() ? input.payeePaypalEmail! : null,
+    };
   }
   // Unknown payee: categorize by the cart, and never trust it automatically (the engine requires approval).
   const counts = new Map<Category, number>();
   for (const i of input.items) counts.set(i.category, (counts.get(i.category) ?? 0) + i.quantity);
   const category = [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
   const domain = /^[\w.-]+\.[a-z]{2,}$/i.test(input.merchant) ? input.merchant.toLowerCase() : null;
-  return { id: null, name: input.merchant, domain, paypalEmail: input.payeePaypalEmail ?? null, category, verified: false };
+  const paypalEmail = input.payeePaypalEmail ?? null;
+  const lookalikeOf = findLookalike({ name: input.merchant, domain, email: paypalEmail }, directory);
+  return { id: null, name: input.merchant, domain, paypalEmail, category, verified: false, lookalikeOf };
 }
 
 const spendRecords = (rows: PaymentRequest[]): SpendRecord[] =>

@@ -91,6 +91,8 @@ export type MerchantRef = {
   domain: string | null;
   category: Category;
   verified: boolean;
+  lookalikeOf?: string | null; // unverified payee that imitates this verified merchant
+  requestedPayee?: string | null; // a payee the agent asked for that differs from the verified one
 };
 
 export type SpendRecord = {

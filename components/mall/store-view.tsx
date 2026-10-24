@@ -18,6 +18,11 @@ export function StoreView({ store }: { store: Store }) {
           </Link>
         )}
       </header>
+      {store.banner && (
+        <div className="mt-6 rounded-xl border border-black/10 bg-[#fff8e6] p-4 text-sm whitespace-pre-line text-black/80" role="note">
+          {store.banner}
+        </div>
+      )}
       <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {store.products.map((p) => (
           <li key={p.sku} className="rounded-xl border border-black/10 bg-white p-4">

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, inQuietHours, merchantMatches, toCents } from './engine';
+import { evaluate, findLookalike, inQuietHours, merchantMatches, toCents } from './engine';
 import type { EngineInput, LineItem, Policy } from './schema';
 
 const groceryPolicy: Policy = {
@@ -126,6 +126,37 @@ describe('merchantMatches', () => {
     expect(merchantMatches('Fresh', 'FreshCart Groceries', 'freshcart.example')).toBe(false);
     expect(merchantMatches('Corner Market', 'FreshCart Groceries', 'freshcart.example')).toBe(false);
     expect(merchantMatches('cart.example', 'FreshCart Groceries', 'freshcart.example')).toBe(false);
+  });
+});
+
+describe('payment redirection', () => {
+  const directory = [
+    { name: 'FreshCart Groceries', domain: 'freshcart.example' },
+    { name: 'Harvest Lane Market', domain: 'harvestlane.example' },
+  ];
+
+  it('spots payees that borrow a verified merchant’s name, domain or email', () => {
+    expect(findLookalike({ name: 'HarvestLane Pay', domain: null, email: 'billing@harvestlane-pay.example' }, directory)).toBe('Harvest Lane Market');
+    expect(findLookalike({ name: 'FreshCart Pay', domain: null, email: null }, directory)).toBe('FreshCart Groceries');
+    expect(findLookalike({ name: 'Payments Desk', domain: null, email: 'ops@freshcart-checkout.example' }, directory)).toBe('FreshCart Groceries');
+  });
+
+  it('does not flag unrelated payees or generic words', () => {
+    expect(findLookalike({ name: 'Corner Bakery', domain: null, email: 'hello@cornerbakery.example' }, directory)).toBeNull();
+    expect(findLookalike({ name: 'Grocery Market Pay', domain: null, email: null }, directory)).toBeNull();
+  });
+
+  it('asks the human about a lookalike payee', () => {
+    const merchant = { id: null, name: 'HarvestLane Pay', domain: null, category: 'groceries' as const, verified: false, lookalikeOf: 'Harvest Lane Market' };
+    const r = evaluate(input({ merchant }));
+    expect(r.decision).toBe('require_approval');
+    expect(ruleOutcome(r, 'merchant.lookalike')).toBe('approval');
+  });
+
+  it('flags an agent trying to override a verified merchant’s payee', () => {
+    const r = evaluate(input({ merchant: { ...freshcart, requestedPayee: 'billing@freshcart-pay.example' } }));
+    expect(r.decision).toBe('require_approval');
+    expect(ruleOutcome(r, 'merchant.payeeOverride')).toBe('approval');
   });
 });
 
