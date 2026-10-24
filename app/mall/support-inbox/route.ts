@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, isNotNull } from 'drizzle-orm';
+import { connection } from 'next/server';
 import { currentUserId } from '@/lib/dashboard';
 import { db, dbReady } from '@/lib/db';
 import { paymentRequests, wallets } from '@/lib/db/schema';
@@ -8,6 +9,7 @@ import { paymentRequests, wallets } from '@/lib/db/schema';
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 export async function GET() {
+  await connection(); // built per request from live orders, never prerendered
   await dbReady();
   const userId = currentUserId();
   const orders = await db
