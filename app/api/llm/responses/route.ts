@@ -1,3 +1,4 @@
+import { secret } from '@/lib/env';
 import { rateLimited } from '@/lib/rate-limit';
 
 // Same-origin proxy for the AG Studio console's assistant, so the OpenAI key never reaches the browser.
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
 
   const upstream = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret('OPENAI_API_KEY')}` },
     body: JSON.stringify(body),
     signal: req.signal,
   });

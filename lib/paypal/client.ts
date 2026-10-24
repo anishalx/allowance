@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
+import { secret } from '../env';
 
-const BASE_URL = process.env.PAYPAL_BASE_URL ?? 'https://api-m.sandbox.paypal.com';
+const BASE_URL = secret('PAYPAL_BASE_URL') ?? 'https://api-m.sandbox.paypal.com';
 const MAX_ATTEMPTS = 4;
 
 export class PayPalError extends Error {
@@ -19,13 +20,13 @@ let token: CachedToken | null = null;
 let inflight: Promise<CachedToken> | null = null;
 
 async function fetchToken(): Promise<CachedToken> {
-  const id = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_CLIENT_SECRET;
-  if (!id || !secret) throw new Error('PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set');
+  const id = secret('PAYPAL_CLIENT_ID');
+  const clientSecret = secret('PAYPAL_CLIENT_SECRET');
+  if (!id || !clientSecret) throw new Error('PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set');
   const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${Buffer.from(`${id}:${secret}`).toString('base64')}`,
+      Authorization: `Basic ${Buffer.from(`${id}:${clientSecret}`).toString('base64')}`,
       'Content-Type': 'application/x-www-form-urlencoded',
     },
     body: 'grant_type=client_credentials',

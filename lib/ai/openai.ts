@@ -1,9 +1,10 @@
 import OpenAI from 'openai';
+import { secret } from '../env';
 
 let client: OpenAI | null = null;
 
 export function openai() {
-  client ??= new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  client ??= new OpenAI({ apiKey: secret('OPENAI_API_KEY') });
   return client;
 }
 

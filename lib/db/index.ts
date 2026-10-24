@@ -3,12 +3,13 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import { migrate } from 'drizzle-orm/libsql/migrator';
 import * as schema from './schema';
+import { secret } from '../env';
 import { seed } from './seed';
 
 function create() {
   const client = createClient({
-    url: process.env.DATABASE_URL || 'file:allowance.db',
-    authToken: process.env.DATABASE_AUTH_TOKEN,
+    url: secret('DATABASE_URL') || 'file:allowance.db',
+    authToken: secret('DATABASE_AUTH_TOKEN'),
   });
   return drizzle(client, { schema });
 }
