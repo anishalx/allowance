@@ -1,9 +1,16 @@
 node_modules/
 .next/
-dist/
+out/
+build/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
 .env
 .env.*
 !.env.example
 *.log
+*.db
+*.db-journal
 .spike-state.json
 .DS_Store
+*.pem
