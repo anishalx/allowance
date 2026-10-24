@@ -5,6 +5,7 @@ import { currentUserId } from '@/lib/dashboard';
 import { db, dbReady } from '@/lib/db';
 import { agents } from '@/lib/db/schema';
 import { errorResponse } from '@/lib/http';
+import { rateLimited } from '@/lib/rate-limit';
 
 const RunInput = z.object({
   agentId: z.string(),
@@ -14,6 +15,8 @@ const RunInput = z.object({
 
 // Streams the demo agent's steps as server-sent events.
 export async function POST(req: Request) {
+  const limited = rateLimited(req, 'demo-run', 4);
+  if (limited) return limited;
   try {
     await dbReady();
     const input = RunInput.parse(await req.json());

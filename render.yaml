@@ -1,0 +1,32 @@
+# Render Blueprint: New → Blueprint → pick this repo. Secrets marked `sync: false` are asked for once
+# in the Render dashboard and never live in the repo.
+services:
+  - type: web
+    name: allowance
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: PAYPAL_BASE_URL
+        value: https://api-m.sandbox.paypal.com
+      - key: OPENAI_MODEL
+        value: gpt-5.5
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SANDBOX_MERCHANT_EMAIL
+        sync: false
+      # Turso (hosted libSQL): libsql://<db>-<org>.turso.io and a database token
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_AUTH_TOKEN
+        sync: false

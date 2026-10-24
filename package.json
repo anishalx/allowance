@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "db:push": "drizzle-kit push",
     "spike": "node --env-file=.env scripts/paypal-spike.mjs"
   },

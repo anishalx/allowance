@@ -3,7 +3,8 @@ import { formatUsd } from './policy/engine';
 // Optional phone push via ntfy.sh: install the ntfy app, subscribe to your topic, and approvals arrive
 // with one-tap Approve / Deny buttons. No account or API key needed.
 
-export const appUrl = () => (process.env.APP_BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+// Render sets RENDER_EXTERNAL_URL automatically; APP_BASE_URL overrides it (e.g. a custom domain).
+export const appUrl = () => (process.env.APP_BASE_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 export async function pushApprovalRequest(opts: {
   topic: string | null;
