@@ -8,6 +8,7 @@ import { ApprovalCard } from '@/components/request-views';
 import { Button, Card, Chip, SectionTitle, Spinner, StatusChip } from '@/components/ui';
 import { DemoBanner } from '@/components/demo-banner';
 import { api, useDashboard } from '@/components/use-dashboard';
+import { MiniMarkdown } from '@/components/mini-markdown';
 import type { AgentStep } from '@/lib/agent/demo-agent';
 
 type Step = AgentStep & { at: number };
@@ -161,12 +162,12 @@ function StepView({ step }: { step: Step }) {
     }
     case 'message':
       return (
-        <div className="rounded-xl border border-line bg-surface p-4 text-sm whitespace-pre-wrap">
+        <div className="rounded-xl border border-line bg-surface p-4 text-sm">
           <div className="mb-1 flex items-center gap-2 text-xs font-medium tracking-wide text-ink-2 uppercase">
             <Bot className="h-4 w-4" aria-hidden="true" /> Agent&apos;s report
           </div>
-          {/* Models write **bold** in reports; render it rather than showing the asterisks. */}
-          {step.text.split(/\*\*(.+?)\*\*/g).map((part, n) => (n % 2 ? <strong key={n}>{part}</strong> : part))}
+          {/* Models write Markdown reports (headings, tables, lists); render it rather than showing the syntax. */}
+          <MiniMarkdown text={step.text} />
         </div>
       );
     case 'error':
