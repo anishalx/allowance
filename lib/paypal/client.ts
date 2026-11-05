@@ -23,14 +23,16 @@ async function fetchToken(): Promise<CachedToken> {
   const id = secret('PAYPAL_CLIENT_ID');
   const clientSecret = secret('PAYPAL_CLIENT_SECRET');
   if (!id || !clientSecret) throw new Error('PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET must be set');
-  const res = await fetch(`${BASE_URL}/v1/oauth2/token`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${id}:${clientSecret}`).toString('base64')}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: 'grant_type=client_credentials',
-  });
+  const request = () =>
+    fetch(`${BASE_URL}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${id}:${clientSecret}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+  const res = await request().catch((err) => (isNetworkError(err) ? sleep(250).then(request) : Promise.reject(err)));
   const body = await res.json();
   if (!res.ok) throw new PayPalError(res.status, body.error ?? 'OAUTH_FAILED', undefined, body);
   // Refresh five minutes early; lifetime varies by scope, so trust expires_in rather than a constant.
@@ -46,6 +48,11 @@ export async function accessToken(forceRefresh = false) {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// A pooled keep-alive connection can be closed by the other side while idle, and the next request on it
+// fails before reaching PayPal (fetch throws a TypeError, usually ECONNRESET). Retrying is safe: POSTs carry
+// a PayPal-Request-Id, so PayPal deduplicates even if the first attempt did arrive.
+const isNetworkError = (err: unknown) => err instanceof TypeError;
+
 export type RequestOptions = {
   body?: unknown;
   rawBody?: string; // pre-serialized JSON, sent byte-for-byte
@@ -60,17 +67,27 @@ export async function paypal<T = unknown>(method: 'GET' | 'POST' | 'PATCH' | 'DE
   let refreshed = false;
 
   for (let attempt = 1; ; attempt++) {
-    const res = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${await accessToken()}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=representation',
-        ...(requestId && { 'PayPal-Request-Id': requestId }),
-        ...opts.headers,
-      },
-      body: opts.rawBody ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${await accessToken()}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+          ...(requestId && { 'PayPal-Request-Id': requestId }),
+          ...opts.headers,
+        },
+        body: opts.rawBody ?? (opts.body === undefined ? undefined : JSON.stringify(opts.body)),
+      });
+    } catch (err) {
+      // PATCH isn't guaranteed idempotent, so only it is never repeated.
+      if (isNetworkError(err) && method !== 'PATCH' && attempt < MAX_ATTEMPTS) {
+        await sleep(2 ** attempt * 250);
+        continue;
+      }
+      throw err;
+    }
 
     if (res.status === 401 && !refreshed) {
       refreshed = true;

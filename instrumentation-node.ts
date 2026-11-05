@@ -14,5 +14,7 @@ setTimeout(() => void webhookId(), 5_000);
 // KEEP_AWAKE=0 turns it off.
 const publicUrl = process.env.RENDER_EXTERNAL_URL;
 if (publicUrl && process.env.KEEP_AWAKE !== '0') {
-  setInterval(() => void fetch(`${publicUrl}/api/health`).catch(() => {}), 10 * 60_000).unref();
+  // Connection: close, because a pooled connection idle for 10 minutes is long dead and would reset.
+  const ping = () => fetch(`${publicUrl}/api/health`, { headers: { Connection: 'close' } });
+  setInterval(() => void ping().catch(() => ping().catch(() => {})), 10 * 60_000).unref();
 }

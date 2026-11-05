@@ -13,6 +13,7 @@ function visitor() {
       method,
       redirect: 'manual',
       headers: {
+        Connection: 'close', // a pooled connection idle for 20+ s gets reset by Render's edge on reuse
         ...(jar.size && { Cookie: [...jar].map(([k, v]) => `${k}=${v}`).join('; ') }),
         ...(json !== undefined && { 'Content-Type': 'application/json' }),
         'Sec-Fetch-Site': 'same-origin',
@@ -42,7 +43,7 @@ function visitor() {
 async function mcp(key, name, args = {}) {
   const res = await fetch(`${BASE}/api/mcp`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
+    headers: { Connection: 'close', Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: name === 'tools/list' ? 'tools/list' : 'tools/call', params: name === 'tools/list' ? {} : { name, arguments: args } }),
   });
   const text = await res.text();

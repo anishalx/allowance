@@ -24,6 +24,7 @@ export async function pushApprovalRequest(opts: {
       method: 'POST',
       signal: AbortSignal.timeout(8_000),
       headers: {
+        Connection: 'close', // pushes are sporadic, so a pooled connection would usually be stale
         Title: kind === 'requests' ? `${opts.agentName} wants to spend ${formatUsd(opts.amountCents)}` : `${opts.agentName} wants to act on your PayPal: ${formatUsd(opts.amountCents)}`,
         Tags: 'moneybag',
         Priority: 'high',

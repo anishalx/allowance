@@ -46,7 +46,9 @@ async function browse(url: string, agentId: string) {
     return 'Only the Agent Mall demo stores (/mall/...) can be browsed in this demo.';
   }
   // The agent id tells the support inbox whose store this is; the model never sees it.
-  const res = await fetch(target, { headers: { 'User-Agent': 'AllowanceDemoAgent/1.0', 'X-Allowance-Agent': agentId } });
+  // A fresh connection per page: a pooled one can go stale while the model thinks, and Render's edge
+  // resets it (ECONNRESET) on reuse.
+  const res = await fetch(target, { headers: { 'User-Agent': 'AllowanceDemoAgent/1.0', 'X-Allowance-Agent': agentId, Connection: 'close' } });
   if (!res.ok) return `HTTP ${res.status} for ${target.pathname}`;
   const html = await res.text();
   const main = html.match(/<main[\s\S]*?<\/main>/i)?.[0] ?? html;
