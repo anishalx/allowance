@@ -111,3 +111,29 @@ body {
 .slide-in {
   animation: slide-in 0.25s ease-out both;
 }
+
+/* Agent Mall: text an attacker planted in a store page. Hidden from shoppers; AI agents scrape it anyway.
+   Opening the page at #planted-note shows it. The label is CSS content, so it never reaches the agent. */
+.planted-note {
+  display: none;
+}
+
+.planted-note:target {
+  display: block;
+  margin-top: 1.5rem;
+  border: 2px dashed #dc2626;
+  border-radius: 0.75rem;
+  background: #fef2f2;
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #7f1d1d;
+  white-space: pre-line;
+}
+
+.planted-note:target::before {
+  content: 'Hidden on the real page. Shoppers never see this; AI agents read it.';
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #b91c1c;
+}

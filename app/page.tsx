@@ -18,8 +18,8 @@ const STATS = [
     href: 'https://www.pingidentity.com/en/lp/4423-2026-consumer-survey-ai-trust.html',
   },
   {
-    value: '8 in 10',
-    label: 'times a GPT-5.5 shopping agent paid a forged "payments moved" payee',
+    value: '10 in 10',
+    label: 'times a DeepSeek V4 Pro shopping agent paid an account named in a hidden "payments moved" note',
     source: "Allowance's attack lab",
     href: 'https://github.com/anishalx/allowance#attack-lab',
   },

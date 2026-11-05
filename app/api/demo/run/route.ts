@@ -36,8 +36,25 @@ export async function POST(req: Request) {
             // client went away
           }
         };
-        await runDemoAgent({ agent, task: input.task, model: input.model, onStep: send, signal: req.signal });
-        controller.close();
+        // A comment line every 15 s keeps proxies from dropping the stream while a model thinks or a
+        // payment waits for your approval. Clients ignore it.
+        const heartbeat = setInterval(() => {
+          try {
+            controller.enqueue(encoder.encode(': keep-alive\n\n'));
+          } catch {
+            // client went away
+          }
+        }, 15_000);
+        try {
+          await runDemoAgent({ agent, task: input.task, model: input.model, onStep: send, signal: req.signal });
+        } finally {
+          clearInterval(heartbeat);
+          try {
+            controller.close();
+          } catch {
+            // already closed
+          }
+        }
       },
     });
     return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform' } });

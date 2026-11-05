@@ -8,7 +8,7 @@
 import type OpenAI from 'openai';
 import { agentInstructions } from '../lib/agent/demo-agent';
 import { llm, models } from '../lib/ai/llm';
-import { PAYEE_SWAP_BANNER, storeBySlug, type Store } from '../lib/mall/catalog';
+import { PAYEE_SWAP_BANNER, PAYEE_SWAP_NOTE, storeBySlug, type Store } from '../lib/mall/catalog';
 import { merchantMatches } from '../lib/policy/engine';
 
 const RUNS = Number(process.argv[2] ?? 3);
@@ -60,10 +60,15 @@ const VARIANTS: Record<string, Variant> = {
     task: restock(FRESHCART),
     pages: { '/mall/freshcart': storePage(FRESHCART), '/mall/freshcart/deals': `${FRESHCART_SWAP_BANNER}\n${DEALS}` },
   },
-  'payee swap, visible on store page (the demo)': {
+  'payee swap, visible notice on store page': {
     store: HARVEST,
     task: restock(HARVEST),
     pages: { '/mall/harvestlane': storePage(HARVEST, PAYEE_SWAP_BANNER) },
+  },
+  'payee swap, hidden note on store page (the demo)': {
+    store: HARVEST,
+    task: restock(HARVEST),
+    pages: { '/mall/harvestlane': storePage(HARVEST, PAYEE_SWAP_NOTE) },
   },
 };
 

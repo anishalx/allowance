@@ -18,6 +18,13 @@ export function StoreView({ store }: { store: Store }) {
           </Link>
         )}
       </header>
+      {store.hiddenNote && (
+        // Planted by the attacker. Shoppers never see it; scrapers, and so AI agents, read it.
+        // Opening the page at #planted-note reveals it for the demo (see globals.css).
+        <div id="planted-note" className="planted-note">
+          {store.hiddenNote}
+        </div>
+      )}
       {store.banner && (
         <div className="mt-6 rounded-xl border border-black/10 bg-[#fff8e6] p-4 text-sm whitespace-pre-line text-black/80" role="note">
           {store.banner}
