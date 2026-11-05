@@ -7,3 +7,12 @@ net.setDefaultAutoSelectFamilyAttemptTimeout(2_500);
 
 // On a public deployment, make sure PayPal knows where to send webhooks (no-op locally).
 setTimeout(() => void webhookId(), 5_000);
+
+// Render's free plan sleeps after 15 idle minutes, which makes the next visitor wait about a minute, and
+// GitHub runs the scheduled keep-awake only every few hours. So while the server runs on Render, it pings
+// its own public URL every 10 minutes. One always-on service fits in Render's 750 free hours a month.
+// KEEP_AWAKE=0 turns it off.
+const publicUrl = process.env.RENDER_EXTERNAL_URL;
+if (publicUrl && process.env.KEEP_AWAKE !== '0') {
+  setInterval(() => void fetch(`${publicUrl}/api/health`).catch(() => {}), 10 * 60_000).unref();
+}

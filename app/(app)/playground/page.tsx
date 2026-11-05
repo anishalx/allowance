@@ -92,7 +92,7 @@ function StepView({ step }: { step: Step }) {
           </summary>
           <pre className="mt-2 max-h-56 overflow-auto font-mono text-xs whitespace-pre-wrap text-ink-2">
             {step.preview.split('\n').map((line, n) => (
-              <span key={n} className={INJECTION_MARKER.test(line) || /-pay\.example|payments partner/i.test(line) ? 'font-semibold text-deny' : undefined}>
+              <span key={n} className={INJECTION_MARKER.test(line) || /-pay\.example|payments partner|old [\w ]*account/i.test(line) ? 'font-semibold text-deny' : undefined}>
                 {line}
                 {'\n'}
               </span>
