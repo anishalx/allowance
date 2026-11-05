@@ -21,6 +21,9 @@ services:
         sync: false
       - key: DEEPSEEK_API_KEY
         sync: false
+      # Optional: removes AG Studio's trial watermark. Read at build time, so redeploy after setting it.
+      - key: NEXT_PUBLIC_AG_STUDIO_LICENSE_KEY
+        sync: false
       - key: SANDBOX_MERCHANT_EMAIL
         sync: false
       # Turso (hosted libSQL): libsql://<db>-<org>.turso.io and a database token

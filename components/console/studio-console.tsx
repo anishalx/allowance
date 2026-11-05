@@ -410,7 +410,8 @@ export default function StudioConsole() {
   }
 
   return (
-    <AgStudioProvider modules={[AgStudioAiModule]}>
+    // AG Grid license keys are meant to ship to the browser. Without one, AG Studio runs as a watermarked trial.
+    <AgStudioProvider modules={[AgStudioAiModule]} licenseKey={process.env.NEXT_PUBLIC_AG_STUDIO_LICENSE_KEY || undefined}>
       {note && <p className="mb-2 text-xs text-ink-3">{note}</p>}
       <div className="h-full overflow-hidden rounded-2xl border border-line">
         <AgStudio style={{ height: '100%', width: '100%' }} data={data} initialState={INITIAL_STATE} mode="edit" theme={theme} ai={ai} />

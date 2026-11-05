@@ -644,9 +644,11 @@ function runRequest(config: OpenAiConfig, request: AgLlmRequest, signal?: AbortS
         })),
         tool_choice: prepareToolChoice(toolChoice),
         text: { format: prepareResponseFormat(responseFormat!) },
-        // Studio's effort ids are passed straight through as OpenAI's reasoning effort. A model
-        // declared without efforts sends none, so the adapter's own default applies.
-        reasoning: { effort: model?.effort ?? 'medium' },
+        // Studio's effort ids are passed straight through as the reasoning effort. A model declared
+        // without efforts sends none, so the adapter's default applies: thinking off. DeepSeek's
+        // thinking mode rejects any turn whose earlier reasoning isn't sent back, and Studio's
+        // view-derived history doesn't keep it. Console questions and tool calls don't need it.
+        reasoning: { effort: model?.effort ?? 'none' },
         parallel_tool_calls: true,
     };
 
