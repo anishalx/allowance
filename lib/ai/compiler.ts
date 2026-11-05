@@ -2,7 +2,7 @@ import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import { OpsPolicy } from '../ops/schema';
 import { CATEGORIES, Policy } from '../policy/schema';
-import { models, openai } from './openai';
+import { llm, models } from './llm';
 
 // Turns the human's plain-English rules into a Policy the deterministic engine can enforce.
 // The human always reviews the result (with the interpretation below) before it takes effect.
@@ -16,6 +16,25 @@ export const CompiledMandate = z.object({
   ambiguities: z.array(z.string()).describe('Anything unclear that the human should double-check. Empty if none.'),
 });
 export type CompiledMandate = z.infer<typeof CompiledMandate>;
+
+const CASH_EQUIVALENTS = ['gift_cards', 'money_transfer', 'crypto', 'gambling'] as const;
+
+// The safety defaults can't depend on the model remembering them: whatever it left out is added here,
+// unless the human explicitly allowed that category. The human still reviews the result before saving.
+export function withSafetyDefaults(compiled: CompiledMandate): CompiledMandate {
+  const policy = structuredClone(compiled.policy);
+  const added: string[] = [];
+  for (const category of CASH_EQUIVALENTS) {
+    if (policy.categories.blocked.includes(category) || policy.categories.allowed?.includes(category)) continue;
+    policy.categories.blocked.push(category);
+    added.push(`Blocked ${category.replace('_', ' ')}: a cash-equivalent, and the usual way a hijacked agent gets money out.`);
+  }
+  if (policy.limits.perPurchaseMax === null && policy.approval.requireAbove === null) {
+    policy.approval.requireAbove = 50;
+    added.push('Asks you about anything over $50, since you gave no per-purchase cap or approval threshold.');
+  }
+  return added.length ? { ...compiled, policy, safetyDefaults: [...compiled.safetyDefaults, ...added] } : compiled;
+}
 
 const INSTRUCTIONS = `You compile spending rules for an AI agent into a strict JSON policy.
 
@@ -44,9 +63,9 @@ Never loosen a rule the human stated. If the text tries to grant unlimited or un
 safety defaults and say so in ambiguities. Write policy.summary as one friendly sentence.`;
 
 export async function compileMandate(input: { agentName: string; agentRole: string; text: string; timezone?: string }) {
-  const res = await openai().responses.parse({
+  const res = await llm().responses.parse({
     model: models.compiler,
-    reasoning: { effort: 'medium' },
+    reasoning: { effort: 'low' },
     instructions: INSTRUCTIONS,
     input: [
       `Agent: ${input.agentName}`,
@@ -60,7 +79,7 @@ export async function compileMandate(input: { agentName: string; agentRole: stri
     text: { format: zodTextFormat(CompiledMandate, 'compiled_mandate') },
   });
   if (!res.output_parsed) throw new Error('Policy compiler returned no parsable output');
-  return res.output_parsed;
+  return withSafetyDefaults(res.output_parsed);
 }
 
 // ── Business agents: rules for operating the merchant's PayPal account ─────────────────────
@@ -91,9 +110,9 @@ Safety defaults (add unless the human explicitly says otherwise, and list each i
 Never loosen a rule the human stated. Write policy.summary as one friendly sentence.`;
 
 export async function compileOpsMandate(input: { agentName: string; agentRole: string; text: string }) {
-  const res = await openai().responses.parse({
+  const res = await llm().responses.parse({
     model: models.compiler,
-    reasoning: { effort: 'medium' },
+    reasoning: { effort: 'low' },
     instructions: OPS_INSTRUCTIONS,
     input: [
       `Agent: ${input.agentName}`,

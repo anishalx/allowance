@@ -36,8 +36,8 @@ const Dollars = z.number().nonnegative();
 export const Period = z.enum(['day', 'week', 'month']);
 export type Period = z.infer<typeof Period>;
 
-// Every field is required (nullable instead of optional) so the schema doubles as an
-// OpenAI strict structured-output format.
+// Every field is required (nullable instead of optional) so the schema doubles as a
+// strict JSON-schema output format.
 export const Policy = z.object({
   summary: z.string().describe('One sentence, plain English, describing what this agent may do.'),
   currency: z.literal('USD'),

@@ -1,5 +1,5 @@
 // Small in-memory token bucket per client IP and route. Enough to keep a public demo from burning
-// OpenAI credits; a multi-instance deployment would move this to a shared store.
+// AI credits; a multi-instance deployment would move this to a shared store.
 type Bucket = { tokens: number; updated: number };
 const buckets = new Map<string, Bucket>();
 

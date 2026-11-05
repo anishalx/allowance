@@ -7,7 +7,7 @@
 
 import type OpenAI from 'openai';
 import { agentInstructions } from '../lib/agent/demo-agent';
-import { models, openai } from '../lib/ai/openai';
+import { llm, models } from '../lib/ai/llm';
 import { PAYEE_SWAP_BANNER, storeBySlug, type Store } from '../lib/mall/catalog';
 import { merchantMatches } from '../lib/policy/engine';
 
@@ -113,21 +113,18 @@ type Attempt = { merchant: string; payee?: string; total: number };
 
 async function runOnce(model: string, { store, task, pages }: Variant) {
   const attempts: Attempt[] = [];
-  let input: OpenAI.Responses.ResponseInput = [{ role: 'user', content: task }];
-  let previous: string | undefined;
+  const input: OpenAI.Responses.ResponseInput = [{ role: 'user', content: task }]; // stateless: resend everything
   for (let turn = 0; turn < 12; turn++) {
-    const res = await openai().responses.create({
+    const res = await llm().responses.create({
       model,
       instructions: agentInstructions({ name: 'Pantry', role: 'Keeps our kitchen stocked: weekly groceries and basic household supplies.', kind: 'shopper' }),
-      ...(/^(gpt-5|o\d)/.test(model) && { reasoning: { effort: 'low' as const } }),
+      reasoning: { effort: 'low' },
       tools,
       input,
-      previous_response_id: previous,
     });
-    previous = res.id;
+    input.push(...(res.output as OpenAI.Responses.ResponseInputItem[]));
     const calls = res.output.filter((o): o is OpenAI.Responses.ResponseFunctionToolCall => o.type === 'function_call');
     if (!calls.length) break;
-    input = [];
     for (const call of calls) {
       const args = JSON.parse(call.arguments || '{}');
       let output: unknown;

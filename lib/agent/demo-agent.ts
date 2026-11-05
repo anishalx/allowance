@@ -1,12 +1,12 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import type OpenAI from 'openai';
-import { models, openai } from '../ai/openai';
+import { AGENT_MODELS, llm, models } from '../ai/llm';
 import type { Agent } from '../db/schema';
 import { buildMcpServer } from '../mcp/server';
 import { appUrl } from '../notify';
 
-// A real OpenAI agent that shops the Agent Mall and pays through Allowance's MCP server — the same
+// A real AI agent (DeepSeek) that shops the Agent Mall and pays through Allowance's MCP server — the same
 // tools any external agent (Claude, ChatGPT, Cursor) would use, connected in-process.
 
 export type AgentStep =
@@ -70,10 +70,7 @@ the tool waits for them. Finish with a short report to your human: what you boug
 that was blocked or needs their attention.`;
 }
 
-const supportsReasoning = (model: string) => /^(gpt-5|o\d)/.test(model);
-
-// Models the playground may run. Safety must not depend on which one: that's the point of Allowance.
-export const AGENT_MODELS = ['gpt-5.5', 'gpt-5.4-mini', 'gpt-6.1-sol'] as const;
+export { AGENT_MODELS };
 export type AgentModel = (typeof AGENT_MODELS)[number];
 
 export async function runDemoAgent(opts: { agent: Agent; task: string; model?: AgentModel; onStep: (s: AgentStep) => void; signal?: AbortSignal }) {
@@ -106,31 +103,32 @@ export async function runDemoAgent(opts: { agent: Agent; task: string; model?: A
       ),
     ];
 
-    let input: OpenAI.Responses.ResponseInput = [{ role: 'user', content: task }];
-    let previousResponseId: string | undefined;
+    // Every turn resends the whole conversation, including the model's own reasoning and tool calls:
+    // DeepSeek's Responses API doesn't store responses, so there is no previous_response_id to lean on.
+    const input: OpenAI.Responses.ResponseInput = [{ role: 'user', content: task }];
     const model = opts.model ?? models.agent;
     onStep({ kind: 'status', text: `Agent model: ${model}` });
 
     for (let turn = 0; turn < MAX_TURNS; turn++) {
       if (signal?.aborted) throw new Error('Stopped');
-      const res = await openai().responses.create(
+      const res = await llm().responses.create(
         {
           model,
           instructions: agentInstructions(agent),
-          ...(supportsReasoning(model) && { reasoning: { effort: 'low', summary: 'auto' } }),
+          reasoning: { effort: 'low' },
           tools,
           input,
-          previous_response_id: previousResponseId,
         },
         { signal },
       );
-      previousResponseId = res.id;
+      input.push(...(res.output as OpenAI.Responses.ResponseInputItem[]));
 
       const calls = res.output.filter((o): o is OpenAI.Responses.ResponseFunctionToolCall => o.type === 'function_call');
       for (const item of res.output) {
         if (item.type === 'reasoning') {
-          const text = item.summary?.map((s) => s.text).join(' ').trim();
-          if (text) onStep({ kind: 'thinking', text });
+          // Reasoning models may return raw reasoning rather than a summary; show the start of it.
+          const text = (item.summary?.map((s) => s.text).join(' ') || item.content?.map((c) => c.text).join(' ') || '').trim();
+          if (text) onStep({ kind: 'thinking', text: text.length > 600 ? `${text.slice(0, 600)}…` : text });
         }
       }
       if (!calls.length) {
@@ -138,7 +136,6 @@ export async function runDemoAgent(opts: { agent: Agent; task: string; model?: A
         break;
       }
 
-      input = [];
       for (const call of calls) {
         const args = JSON.parse(call.arguments || '{}');
         let output: string;

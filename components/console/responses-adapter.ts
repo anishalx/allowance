@@ -1,4 +1,5 @@
-// OpenAI Responses API adapter for the AG Studio Agent Framework.
+// Responses API adapter for the AG Studio Agent Framework. The wire format is OpenAI's Responses API,
+// which DeepSeek also serves; the browser only ever talks to Allowance's own /api/llm proxy.
 // Adapted from AG Grid's example adapter (https://www.ag-grid.com/studio/react/ai-direct-llm-runner/).
 // Changes: requests go to Allowance's same-origin proxy (/api/llm), so no API key is ever sent to the browser.
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -697,11 +698,11 @@ function runRequest(config: OpenAiConfig, request: AgLlmRequest, signal?: AbortS
 // Factory Function
 // =============================================================================
 
-export function openaiAdapter(options: OpenAiAdapterOptions): AgLlmAdapter {
+export function responsesAdapter(options: OpenAiAdapterOptions): AgLlmAdapter {
     const config: OpenAiConfig = {
         endpoint: options.endpoint ?? '/api/llm',
         key: options.key,
-        model: options.model ?? 'gpt-5.5',
+        model: options.model ?? 'deepseek-flash',
         organization: options.organization,
     };
 

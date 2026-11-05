@@ -23,11 +23,11 @@ import { usd } from '@/lib/format';
 import { Spinner } from '../ui';
 import { api } from '../use-dashboard';
 import { useConfirm, type ConfirmRequest } from './confirm';
-import { openaiAdapter } from './openai-adapter';
+import { responsesAdapter } from './responses-adapter';
 
 if (process.env.NODE_ENV !== 'production') enableStudioDevValidations();
 
-const adapter = openaiAdapter({ endpoint: '/api/llm' });
+const adapter = responsesAdapter({ endpoint: '/api/llm' });
 
 const text = (id: string, name: string, description?: string): AgFieldDefinition => ({ id, name, format: 'textFormat', description });
 const money = (id: string, name: string, description?: string): AgFieldDefinition => ({ id, name, format: 'currencyFormat', formatOptions: { format: '$#,##0.00' }, description });
@@ -393,8 +393,8 @@ export default function StudioConsole() {
             primary: 'lead',
             promptStarters: PROMPT_STARTERS,
             models: [
-              { id: 'gpt-5.4-mini', label: 'GPT-5.4 mini (fast)' },
-              { id: 'gpt-5.5', label: 'GPT-5.5 (thorough)' },
+              { id: 'deepseek-flash', label: 'DeepSeek Flash (fast)' },
+              { id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro (thorough)' },
             ],
           };
         }),

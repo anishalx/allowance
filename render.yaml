@@ -15,13 +15,11 @@ services:
         value: "24"
       - key: PAYPAL_BASE_URL
         value: https://api-m.sandbox.paypal.com
-      - key: OPENAI_MODEL
-        value: gpt-5.5
       - key: PAYPAL_CLIENT_ID
         sync: false
       - key: PAYPAL_CLIENT_SECRET
         sync: false
-      - key: OPENAI_API_KEY
+      - key: DEEPSEEK_API_KEY
         sync: false
       - key: SANDBOX_MERCHANT_EMAIL
         sync: false

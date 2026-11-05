@@ -1,7 +1,7 @@
 import { DEMO_USER_ID } from '../db/seed';
 import { publicDemo } from '../demo-token';
 
-// Daily AI caps for the public demo, so nobody can drain the OpenAI account. Weights are rough:
+// Daily AI caps for the public demo, so nobody can drain the AI account. Weights are rough:
 // an agent run makes many model calls; a rules compile, an audit or a console message makes one.
 // Per process and in memory, like the rate limiter. The owner household is never capped.
 export const AI_COST = { agentRun: 10, compile: 1, audit: 1, console: 1 } as const;

@@ -2,7 +2,7 @@ import { zodTextFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 import type { Check, Decision, LineItem, Policy } from '../policy/schema';
 import { spendAi } from './budget';
-import { models, openai } from './openai';
+import { llm, models } from './llm';
 
 // The AI half of the check. It sees what the deterministic engine can't — intent — and may only
 // make a decision stricter. If it is unavailable, we fail closed and ask the human.
@@ -149,7 +149,7 @@ async function runAudit(instructions: string, lines: string[], timeoutMs: number
   const overBudget = household ? spendAi(household, 'audit') : null;
   if (overBudget) return failClosed(`${overBudget} Without the AI auditor, Allowance asks you instead of approving automatically.`);
   try {
-    const res = await openai().responses.parse(
+    const res = await llm().responses.parse(
       {
         model: models.auditor,
         reasoning: { effort: 'low' },

@@ -1,11 +1,12 @@
 import { spendAi } from '@/lib/ai/budget';
-import { secret } from '@/lib/env';
+import { AGENT_MODELS, AI_BASE_URL, aiApiKey, models } from '@/lib/ai/llm';
 import { currentUserId } from '@/lib/households';
 import { rateLimited } from '@/lib/rate-limit';
 
-// Same-origin proxy for the AG Studio console's assistant, so the OpenAI key never reaches the browser.
+// Same-origin proxy for the AG Studio console's assistant (DeepSeek's Responses API), so the API
+// key never reaches the browser.
 // Only the console page may use it: it needs the page's demo household and counts against its AI cap.
-const ALLOWED_MODELS = new Set(['gpt-5.5', 'gpt-5.4-mini']);
+const ALLOWED_MODELS = new Set<string>([models.agent, ...AGENT_MODELS]);
 const MAX_OUTPUT_TOKENS = 8_000;
 
 const refuse = (status: number, message: string) => Response.json({ error: { message } }, { status });
@@ -20,12 +21,12 @@ export async function POST(req: Request) {
   if (overBudget) return refuse(429, overBudget);
 
   const body = await req.json();
-  if (!ALLOWED_MODELS.has(body.model)) body.model = 'gpt-5.4-mini';
+  if (!ALLOWED_MODELS.has(body.model)) body.model = models.agent;
   body.max_output_tokens = Math.min(Number(body.max_output_tokens) || MAX_OUTPUT_TOKENS, MAX_OUTPUT_TOKENS);
 
-  const upstream = await fetch('https://api.openai.com/v1/responses', {
+  const upstream = await fetch(`${AI_BASE_URL}/responses`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${secret('OPENAI_API_KEY')}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${aiApiKey()}` },
     body: JSON.stringify(body),
     signal: req.signal,
   });

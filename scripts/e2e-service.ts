@@ -1,4 +1,4 @@
-// End-to-end check of the payment pipeline against the PayPal sandbox and OpenAI, no web server.
+// End-to-end check of the payment pipeline against the PayPal sandbox and the AI (DeepSeek), no web server.
 import { readFileSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { db, dbReady } from '../lib/db';
