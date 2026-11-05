@@ -10,6 +10,15 @@ services:
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
+    # Pushes that only touch docs, tests or dev scripts don't redeploy: a redeploy briefly interrupts
+    # anyone in the middle of a demo run.
+    buildFilter:
+      ignoredPaths:
+        - README.md
+        - docs/**
+        - scripts/**
+        - "**/*.test.ts"
+        - .github/**
     envVars:
       - key: NODE_VERSION
         value: "24"

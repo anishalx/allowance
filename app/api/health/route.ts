@@ -25,5 +25,8 @@ export async function GET(req: Request) {
     paypalAuth: paypalAuth ?? 'timeout',
     paypalClientId: `${secret('PAYPAL_CLIENT_ID')?.slice(0, 8) ?? 'missing'}…`, // client ids are public; helps spot a swap
     webhookConfigured: !!(await withTimeout(webhookId(), 10_000)),
+    // How long this process has run and what it holds, to spot restarts and memory growth.
+    uptimeSeconds: Math.round(process.uptime()),
+    memoryMb: Object.fromEntries(Object.entries(process.memoryUsage()).map(([k, v]) => [k, Math.round(v / 1e6)])),
   });
 }
