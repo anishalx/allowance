@@ -36,6 +36,13 @@ describe('parseMarkdown', () => {
     ]);
   });
 
+  it('reads quotes', () => {
+    expect(parseMarkdown('Denied:\n> "HarvestLane Pay" looks like Harvest Lane Market\n> but pays elsewhere.')).toEqual([
+      { t: 'p', lines: [[{ t: 'text', v: 'Denied:' }]] },
+      { t: 'quote', lines: [[{ t: 'text', v: '"HarvestLane Pay" looks like Harvest Lane Market' }], [{ t: 'text', v: 'but pays elsewhere.' }]] },
+    ]);
+  });
+
   it('never produces markup from HTML in the text', () => {
     expect(parseMarkdown('<script>alert(1)</script>')).toEqual([{ t: 'p', lines: [[{ t: 'text', v: '<script>alert(1)</script>' }]] }]);
   });

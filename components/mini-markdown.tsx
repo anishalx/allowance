@@ -68,6 +68,17 @@ export function MiniMarkdown({ text }: { text: string }) {
                 </table>
               </div>
             );
+          case 'quote':
+            return (
+              <blockquote key={i} className="border-l-2 border-line pl-3 text-ink-2">
+                {b.lines.map((line, j) => (
+                  <Fragment key={j}>
+                    {j > 0 && <br />}
+                    <Inlines nodes={line} />
+                  </Fragment>
+                ))}
+              </blockquote>
+            );
           case 'p':
             return (
               <p key={i}>

@@ -1,4 +1,4 @@
-// A tiny Markdown parser for agent reports: headings, bullet and numbered lists, tables, rules, and inline
+// A tiny Markdown parser for agent reports: headings, bullet and numbered lists, tables, quotes, rules, and inline
 // bold, italic, code and strikethrough. It returns plain data that the UI turns into React elements, so a
 // model's output can never inject HTML.
 
@@ -7,6 +7,7 @@ export type Inline = { t: 'text'; v: string } | { t: 'code'; v: string } | { t: 
 export type Block =
   | { t: 'heading'; c: Inline[] }
   | { t: 'p'; lines: Inline[][] }
+  | { t: 'quote'; lines: Inline[][] }
   | { t: 'ul'; items: Inline[][] }
   | { t: 'ol'; items: Inline[][] }
   | { t: 'table'; head: Inline[][]; rows: Inline[][][] }
@@ -33,6 +34,7 @@ const HEADING = /^\s{0,3}#{1,6}\s+(.*)$/;
 const RULE = /^\s*([-*_])(\s*\1){2,}\s*$/;
 const BULLET = /^\s*[-*•+]\s+(.*)$/;
 const NUMBERED = /^\s*\d+[.)]\s+(.*)$/;
+const QUOTE = /^\s*>\s?(.*)$/;
 const TABLE_ROW = /^\s*\|.*\|\s*$/;
 const TABLE_DIVIDER = (line: string) => /^[\s|:-]+$/.test(line) && line.includes('--');
 const cells = (line: string) =>
@@ -44,7 +46,7 @@ const cells = (line: string) =>
 
 const startsTable = (lines: string[], i: number) => TABLE_ROW.test(lines[i]) && i + 1 < lines.length && TABLE_DIVIDER(lines[i + 1]);
 const startsBlock = (lines: string[], i: number) =>
-  HEADING.test(lines[i]) || RULE.test(lines[i]) || BULLET.test(lines[i]) || NUMBERED.test(lines[i]) || startsTable(lines, i);
+  HEADING.test(lines[i]) || RULE.test(lines[i]) || BULLET.test(lines[i]) || NUMBERED.test(lines[i]) || QUOTE.test(lines[i]) || startsTable(lines, i);
 
 export function parseMarkdown(text: string): Block[] {
   const lines = text.replace(/\r/g, '').split('\n');
@@ -66,6 +68,10 @@ export function parseMarkdown(text: string): Block[] {
     } else if (RULE.test(line)) {
       blocks.push({ t: 'hr' });
       i++;
+    } else if (QUOTE.test(line)) {
+      const quoted: Inline[][] = [];
+      while (i < lines.length && QUOTE.test(lines[i])) quoted.push(parseInline(lines[i++].match(QUOTE)![1]));
+      blocks.push({ t: 'quote', lines: quoted });
     } else if (BULLET.test(line) || NUMBERED.test(line)) {
       const pattern = BULLET.test(line) ? BULLET : NUMBERED;
       const items: Inline[][] = [];
