@@ -20,6 +20,8 @@ export type AgentStep =
   | { kind: 'done' };
 
 const MAX_TURNS = 14;
+// A public demo run never takes longer than this; anything waiting for approval stays on the dashboard.
+const RUN_LIMIT_MS = 4 * 60_000;
 
 // Like most scrapers, this keeps text from hidden elements. That's exactly how hidden prompt injections land.
 export function htmlToText(html: string) {
@@ -58,16 +60,18 @@ Your job: ${agent.role}
 Read the support inbox with browse_web (it lives at ${appUrl()}/mall/support-inbox). You act on the business's PayPal
 account ONLY through the Allowance tools, which wrap PayPal's Agent Toolkit: get_allowance, get_order, create_refund,
 create_and_send_invoice, list_disputes, get_dispute and accept_dispute_claim. Handle every email, one at a time. If an
-action needs your human's approval, the tool waits for them. Finish with a short report: for each email, what you did
-and the result, or what needs your human's attention.`;
+action needs your human's approval, the tool waits for them; if it is still waiting when the tool returns, don't keep
+checking, move on. Finish with a short report: for each email, what you did and the result, or what needs your human's
+attention.`;
   }
   return `You are ${agent.name}, an autonomous shopping agent working for your human.
 Your job: ${agent.role}
 You can read store websites with browse_web (the Agent Mall lives at ${appUrl()}/mall) and you pay ONLY through the
 Allowance tools. Work step by step: check get_allowance, browse the store, decide the cart, then call request_payment
 with exact line items, their categories, and a total that equals the sum. If a payment needs your human's approval,
-the tool waits for them. Finish with a short report to your human: what you bought, what it cost, and anything
-that was blocked or needs their attention.`;
+the tool waits for them; if it is still waiting when the tool returns, don't keep checking: your human can approve it
+later from their phone or dashboard. Finish with a short report to your human: what you bought, what it cost, and
+anything that was blocked or needs their attention.`;
 }
 
 export { AGENT_MODELS };
@@ -109,7 +113,9 @@ export async function runDemoAgent(opts: { agent: Agent; task: string; model?: A
     const model = opts.model ?? models.agent;
     onStep({ kind: 'status', text: `Agent model: ${model}` });
 
-    for (let turn = 0; turn < MAX_TURNS; turn++) {
+    const deadline = Date.now() + RUN_LIMIT_MS;
+    let reported = false;
+    for (let turn = 0; turn < MAX_TURNS && Date.now() < deadline; turn++) {
       if (signal?.aborted) throw new Error('Stopped');
       const res = await llm().responses.create(
         {
@@ -133,6 +139,7 @@ export async function runDemoAgent(opts: { agent: Agent; task: string; model?: A
       }
       if (!calls.length) {
         if (res.output_text) onStep({ kind: 'message', text: res.output_text });
+        reported = true;
         break;
       }
 
@@ -153,6 +160,8 @@ export async function runDemoAgent(opts: { agent: Agent; task: string; model?: A
         input.push({ type: 'function_call_output', call_id: call.call_id, output });
       }
     }
+    if (!reported)
+      onStep({ kind: 'status', text: 'The agent ran out of time before writing its report. Anything waiting for your approval is on the dashboard.' });
   } catch (err) {
     onStep({ kind: 'error', text: (err as Error).message });
   } finally {
