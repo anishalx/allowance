@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: 'Give AI agents a PayPal-backed allowance with rules you write in plain English, an AI auditor, and you in the loop.',
 };
 
-export const viewport: Viewport = { themeColor: '#0a7a55' };
+export const viewport: Viewport = { themeColor: '#ffffff' };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (

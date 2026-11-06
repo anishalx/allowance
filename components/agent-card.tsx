@@ -31,7 +31,7 @@ export function AgentCard({ agent, onChanged }: { agent: DashboardAgent; onChang
   ] as const;
 
   return (
-    <Card className={clsx('flex flex-col p-5', frozen && 'opacity-75')}>
+    <Card className={clsx('flex flex-col p-6', frozen && 'opacity-75')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -47,7 +47,7 @@ export function AgentCard({ agent, onChanged }: { agent: DashboardAgent; onChang
         </Button>
       </div>
 
-      <p className="mt-4 rounded-lg bg-surface-2 p-3 text-sm">“{agent.mandateText}”</p>
+      <p className="mt-4 rounded-xl bg-surface-2 px-4 py-3 text-sm leading-relaxed text-ink-2">“{agent.mandateText}”</p>
 
       {agent.kind === 'business' && agent.opsPolicy ? (
         <BusinessRules agent={agent} />
@@ -61,11 +61,9 @@ export function AgentCard({ agent, onChanged }: { agent: DashboardAgent; onChang
             {a.autoApproveUpTo && <Chip tone="allow">Auto-approves up to {a.autoApproveUpTo}</Chip>}
             {a.perPurchaseMax && <Chip>Max {a.perPurchaseMax} each</Chip>}
             {a.blockedCategories.slice(0, 4).map((c) => (
-              <Chip key={c} tone="deny">
-                No {titleCase(c).toLowerCase()}
-              </Chip>
+              <Chip key={c}>No {titleCase(c).toLowerCase()}</Chip>
             ))}
-            {a.blockedCategories.length > 4 && <Chip tone="deny">+{a.blockedCategories.length - 4} more blocked</Chip>}
+            {a.blockedCategories.length > 4 && <Chip>+{a.blockedCategories.length - 4} more blocked</Chip>}
           </div>
         </>
       )}
@@ -99,20 +97,20 @@ function BusinessRules({ agent }: { agent: DashboardAgent }) {
           <>
             {p.refunds.perRefundMax !== null && <Chip>Refunds ≤ {money(p.refunds.perRefundMax)} each</Chip>}
             {p.refunds.maxOrderAgeDays !== null && <Chip>Orders from last {p.refunds.maxOrderAgeDays} days</Chip>}
-            {p.refunds.fullRefundsNeedApproval && <Chip tone="ask">Asks before full refunds</Chip>}
+            {p.refunds.fullRefundsNeedApproval && <Chip>Asks before full refunds</Chip>}
           </>
         ) : (
-          <Chip tone="deny">No refunds</Chip>
+          <Chip>No refunds</Chip>
         )}
         {p.invoices.enabled ? (
           <>
             {p.invoices.perInvoiceMax !== null && <Chip>Invoices ≤ {money(p.invoices.perInvoiceMax)}</Chip>}
-            {p.invoices.onlyExistingCustomers && <Chip tone="ask">Existing customers only</Chip>}
+            {p.invoices.onlyExistingCustomers && <Chip>Existing customers only</Chip>}
           </>
         ) : (
-          <Chip tone="deny">No invoices</Chip>
+          <Chip>No invoices</Chip>
         )}
-        <Chip tone={p.disputes.acceptClaims === 'never' ? 'deny' : 'ask'}>{p.disputes.acceptClaims === 'never' ? 'Never accepts disputes' : 'Asks before accepting disputes'}</Chip>
+        <Chip>{p.disputes.acceptClaims === 'never' ? 'Never accepts disputes' : 'Asks before accepting disputes'}</Chip>
       </div>
     </>
   );

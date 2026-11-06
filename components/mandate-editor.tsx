@@ -259,7 +259,15 @@ export function MandateEditor(props: Props) {
             {editing.kind === 'business' && editing.opsPolicy ? <OpsPolicyView policy={editing.opsPolicy} /> : <PolicyView policy={editing.policy} />}
           </Card>
         )}
-        {!compiled && !editing && <Card className="p-5 text-sm text-ink-3">The compiled rules appear here for you to review.</Card>}
+        {!compiled && !editing && (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-14 text-center">
+            <Sparkles className="h-7 w-7 text-ink-3" aria-hidden="true" />
+            <p className="mt-3 text-sm font-medium text-ink">Your rules, made exact</p>
+            <p className="mt-1 max-w-sm text-sm leading-relaxed text-ink-2">
+              Press Turn into rules and the exact limits appear here, with how each sentence was understood. Nothing takes effect until you save.
+            </p>
+          </div>
+        )}
         {compiled && (
           <>
             <Card className="slide-in p-5">

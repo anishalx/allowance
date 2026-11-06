@@ -23,13 +23,17 @@ export function DemoBanner({ household, onReset }: { household: DashboardState['
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-line bg-surface px-4 py-3 text-sm shadow-card">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-surface-2 px-4 py-2.5 text-sm">
       <UserRound className="h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
       <p className="min-w-0 flex-1 text-ink-2">
-        <span className="font-medium text-ink">This is your private demo.</span> Your agents, rules, history and kill switch are yours alone. Payments use a shared
-        PayPal sandbox wallet, so no real money moves.
+        <span className="font-medium text-ink">Your private demo.</span> Only you see it, and it runs on PayPal&apos;s sandbox: no real money moves.
       </p>
-      <button type="button" onClick={startOver} disabled={busy} className="inline-flex items-center gap-1 text-xs font-medium text-ink-2 hover:text-ink disabled:opacity-50">
+      <button
+        type="button"
+        onClick={startOver}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-sm font-medium text-ink-2 hover:bg-white hover:text-ink disabled:opacity-50"
+      >
         {busy ? <Spinner /> : <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />} Start over
       </button>
     </div>

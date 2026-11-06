@@ -1,49 +1,27 @@
 @import 'tailwindcss';
 
+/* Light only: a clean white UI everywhere, whatever the visitor's system theme. */
 :root {
-  --canvas: #f5f6f8;
+  color-scheme: light;
+  --canvas: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --ink: #10141b;
-  --ink-2: #4a5261;
-  --ink-3: #8a93a3;
-  --line: #e3e6eb;
+  --surface-2: #f6f7f9;
+  --ink: #101828;
+  --ink-2: #475467;
+  --ink-3: #98a2b3;
+  --line: #eaecf0;
   --brand: #0a7a55;
   --brand-ink: #ffffff;
-  --brand-soft: #e3f5ec;
-  --allow: #0a7a55;
-  --allow-soft: #e3f5ec;
-  --ask: #b45309;
-  --ask-soft: #fdf1df;
-  --deny: #c0362c;
-  --deny-soft: #fbe7e5;
-  --ai: #5b4bd6;
-  --ai-soft: #ece9fd;
-  --shadow: 0 1px 2px rgb(16 20 27 / 0.04), 0 4px 16px rgb(16 20 27 / 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --canvas: #0c0f14;
-    --surface: #141922;
-    --surface-2: #1b212c;
-    --ink: #eef1f6;
-    --ink-2: #aab2c0;
-    --ink-3: #6f7889;
-    --line: #262e3b;
-    --brand: #2fbf86;
-    --brand-ink: #062016;
-    --brand-soft: #12301f;
-    --allow: #3cc58f;
-    --allow-soft: #12301f;
-    --ask: #f0a43a;
-    --ask-soft: #33250f;
-    --deny: #f0675b;
-    --deny-soft: #3a1714;
-    --ai: #9d90ff;
-    --ai-soft: #231f45;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 4px 16px rgb(0 0 0 / 0.3);
-  }
+  --brand-soft: #ebf8f1;
+  --allow: #067647;
+  --allow-soft: #ecfdf3;
+  --ask: #b54708;
+  --ask-soft: #fffaeb;
+  --deny: #b42318;
+  --deny-soft: #fef3f2;
+  --ai: #5925dc;
+  --ai-soft: #f4f3ff;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.03);
 }
 
 @theme inline {
@@ -78,6 +56,11 @@ body {
   background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--brand-soft);
 }
 
 .tabular {

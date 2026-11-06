@@ -3,7 +3,7 @@
 import clsx from 'clsx';
 import { Check, Copy, KeyRound } from 'lucide-react';
 import { useState } from 'react';
-import { Button, Card, SectionTitle, Spinner } from '@/components/ui';
+import { Button, Card, PageHeader, SectionTitle, Spinner } from '@/components/ui';
 import { api, useDashboard } from '@/components/use-dashboard';
 import { useOrigin, useSearchParam } from '@/components/use-location';
 
@@ -56,19 +56,15 @@ export default function ConnectPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Connect an agent</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          Allowance is a remote MCP server. Shopping agents get get_allowance, list_merchants, request_payment, get_payment_status, list_my_payments and request_refund.
-          Business agents get PayPal&apos;s own Agent Toolkit tools (get_order, create_refund, create_and_send_invoice, disputes) with Allowance in front of every action.
-          Either way, an agent only ever sees its own rules.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <PageHeader
+        title="Connect an agent"
+        description="Allowance is a remote MCP server, so any agent can pay through it. Pick an agent, generate its key, and paste the setup into your client. Shopping agents get tools like request_payment and get_allowance; business agents get PayPal's own Agent Toolkit with Allowance in front of every action. An agent only ever sees its own rules."
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <Card className="h-fit space-y-4 p-4">
-          <SectionTitle>Agent</SectionTitle>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+        <Card className="h-fit space-y-4 p-5">
+          <SectionTitle step={1}>Pick an agent</SectionTitle>
           <div className="space-y-2">
             {state?.agents.map((a) => (
               <button

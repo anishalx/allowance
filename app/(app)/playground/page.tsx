@@ -5,7 +5,7 @@ import { Bot, Brain, ExternalLink, Globe, Play, RotateCcw, ShieldAlert, Square, 
 import { useMemo, useRef, useState } from 'react';
 import { OperationApprovalCard } from '@/components/operation-views';
 import { ApprovalCard } from '@/components/request-views';
-import { Button, Card, Chip, SectionTitle, Spinner, StatusChip } from '@/components/ui';
+import { Button, Card, Chip, PageHeader, SectionTitle, Spinner, StatusChip } from '@/components/ui';
 import { DemoBanner } from '@/components/demo-banner';
 import { api, useDashboard } from '@/components/use-dashboard';
 import { MiniMarkdown } from '@/components/mini-markdown';
@@ -214,6 +214,7 @@ export default function PlaygroundPage() {
     setSteps([]);
     setRunning(true);
     setStartedAt(Date.now());
+    if (window.matchMedia('(max-width: 1023px)').matches) document.getElementById('agent-run')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     abort.current = new AbortController();
     try {
       const res = await fetch('/api/demo/run', {
@@ -254,17 +255,15 @@ export default function PlaygroundPage() {
           refresh();
         }}
       />
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Agent playground</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          A real AI agent (DeepSeek) shops the demo stores and pays through Allowance&apos;s MCP tools, the same ones Claude, ChatGPT or Cursor would use.
-        </p>
-      </div>
+      <PageHeader
+        title="Agent playground"
+        description="A real AI agent (DeepSeek) shops the demo stores and pays through Allowance's MCP tools, the same ones Claude, ChatGPT or Cursor would use. Pick a scenario, run it, and decide anything that needs you."
+      />
 
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)_minmax(0,380px)]">
-        <Card className="h-fit space-y-4 p-4">
-          <div>
-            <SectionTitle>Scenario</SectionTitle>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_minmax(0,1fr)_minmax(0,380px)]">
+        <div>
+          <SectionTitle step={1}>Pick a scenario</SectionTitle>
+          <Card className="h-fit space-y-5 p-4">
             <div className="space-y-2">
               {PRESETS.map((p) => (
                 <button
@@ -272,49 +271,20 @@ export default function PlaygroundPage() {
                   type="button"
                   onClick={() => choose(p.id)}
                   disabled={running}
-                  className={clsx('w-full rounded-xl border p-3 text-left text-sm transition-colors', p.id === presetId ? 'border-ink bg-surface-2' : 'border-line hover:bg-surface-2')}
+                  aria-pressed={p.id === presetId}
+                  className={clsx(
+                    'w-full rounded-xl border p-3.5 text-left text-sm transition-colors',
+                    p.id === presetId ? 'border-brand bg-brand-soft/60 ring-1 ring-brand' : 'border-line hover:border-ink-3/60 hover:bg-surface-2',
+                  )}
                 >
                   <div className="flex items-center gap-2 font-medium">
                     {p.label}
                     {'attack' in p && <Chip tone="deny">attack</Chip>}
                   </div>
-                  <div className="mt-0.5 text-xs text-ink-2">{p.note}</div>
+                  {p.id === presetId && <div className="mt-1 text-xs leading-relaxed text-ink-2">{p.note}</div>}
                 </button>
               ))}
             </div>
-          </div>
-          <div>
-            <label htmlFor="task" className="text-xs font-medium text-ink-2">
-              Task for {agent?.name ?? 'the agent'}
-            </label>
-            <textarea
-              id="task"
-              value={task}
-              onChange={(e) => setTask(e.target.value)}
-              rows={5}
-              disabled={running}
-              className="mt-1 w-full rounded-lg border border-line bg-surface p-2.5 text-sm outline-none focus:border-brand"
-            />
-          </div>
-          <div>
-            <div className="text-xs font-medium text-ink-2">Agent model</div>
-            <div className="mt-1 grid grid-cols-2 gap-1 rounded-lg bg-surface-2 p-1" role="radiogroup" aria-label="Agent model">
-              {MODELS.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={model === m.id}
-                  disabled={running}
-                  onClick={() => setModel(m.id)}
-                  className={clsx('rounded-md px-2 py-1.5 text-xs whitespace-nowrap', model === m.id ? 'bg-surface font-medium text-ink shadow-card' : 'text-ink-2 hover:text-ink')}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-1 text-xs text-ink-3">Some models resist the attack, some don&apos;t. Allowance protects them all the same way.</p>
-          </div>
           {running ? (
             <Button variant="secondary" className="w-full" onClick={() => abort.current?.abort()}>
               <Square className="h-4 w-4" aria-hidden="true" /> Stop
@@ -325,9 +295,43 @@ export default function PlaygroundPage() {
             </Button>
           )}
           {state && !state.wallet && <p className="text-xs text-ask">Link a PayPal wallet on the dashboard first, or every payment will be refused.</p>}
-          <a href="/mall/harvestlane#planted-note" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-ink-2 underline">
-            See what&apos;s hidden on Harvest Lane&apos;s page <ExternalLink className="h-3 w-3" aria-hidden="true" />
-          </a>
+          <div className="border-t border-line pt-4">
+            <label htmlFor="task" className="text-sm font-medium text-ink">
+              Task for {agent?.name ?? 'the agent'} <span className="font-normal text-ink-3">(you can edit it)</span>
+            </label>
+            <textarea
+              id="task"
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              rows={4}
+              disabled={running}
+              className="mt-1.5 w-full rounded-xl border border-line bg-surface p-3 text-sm leading-relaxed outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft"
+            />
+          </div>
+          <div>
+            <div className="text-sm font-medium text-ink">Agent model</div>
+            <div className="mt-1.5 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="radiogroup" aria-label="Agent model">
+              {MODELS.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={model === m.id}
+                  disabled={running}
+                  onClick={() => setModel(m.id)}
+                  className={clsx('rounded-lg px-2 py-2 text-sm whitespace-nowrap', model === m.id ? 'bg-surface font-medium text-ink shadow-card' : 'text-ink-2 hover:text-ink')}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-ink-3">Some models resist the attack, some don&apos;t. Allowance protects them all the same way.</p>
+          </div>
+          {'attack' in preset && (
+            <a href="/mall/harvestlane#planted-note" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline">
+              See what&apos;s hidden on Harvest Lane&apos;s page <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+          )}
           <button
             type="button"
             disabled={running}
@@ -341,11 +345,21 @@ export default function PlaygroundPage() {
           >
             <RotateCcw className="h-3 w-3" aria-hidden="true" /> Reset demo data
           </button>
-        </Card>
+          </Card>
+        </div>
 
-        <Card className="min-h-[480px] p-4">
-          <SectionTitle action={running && <Spinner className="text-ink-3" />}>Agent run</SectionTitle>
-          {steps.length === 0 && !running && <p className="text-sm text-ink-3">Pick a scenario and press Run.</p>}
+        <div id="agent-run" className="min-w-0 scroll-mt-28">
+          <SectionTitle step={2} action={running && <Spinner className="text-ink-3" />}>
+            Watch the agent
+          </SectionTitle>
+          <Card className="min-h-[480px] p-5">
+          {steps.length === 0 && !running && (
+            <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line px-6 py-16 text-center">
+              <Bot className="h-8 w-8 text-ink-3" aria-hidden="true" />
+              <p className="mt-3 text-sm font-medium text-ink">Nothing running yet</p>
+              <p className="mt-1 max-w-sm text-sm text-ink-2">Pick a scenario and press Run. Every page the agent reads, every payment it asks for, and what Allowance decided shows up here.</p>
+            </div>
+          )}
           <ol className="space-y-3">
             {steps.map((s, i) => (
               <li key={i} className="slide-in">
@@ -353,12 +367,15 @@ export default function PlaygroundPage() {
               </li>
             ))}
           </ol>
-        </Card>
+          </Card>
+        </div>
 
         <div className="space-y-4">
-          <SectionTitle>Your phone</SectionTitle>
+          <SectionTitle step={3}>Your phone</SectionTitle>
           {pending.length + pendingOps.length === 0 ? (
-            <Card className="p-5 text-sm text-ink-3">Approval requests from this run appear here (and on your phone, if ntfy is set up).</Card>
+            <Card className="p-5 text-sm leading-relaxed text-ink-2">
+              When a payment needs you, it lands here, and on your real phone if you set up ntfy on the dashboard. Approve or deny with one tap.
+            </Card>
           ) : (
             <>
               {pending.map((r) => (

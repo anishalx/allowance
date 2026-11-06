@@ -24,17 +24,17 @@ export function Button({ variant = 'primary', size = 'md', className, ...props }
     <button
       {...props}
       className={clsx(
-        'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+        'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
         {
-          sm: 'h-8 px-3 text-sm',
+          sm: 'h-9 px-3 text-sm',
           md: 'h-10 px-4 text-sm',
-          lg: 'h-12 px-6 text-base',
+          lg: 'h-12 px-6 text-[15px]',
         }[size],
         {
-          primary: 'bg-ink text-canvas hover:opacity-90',
-          allow: 'bg-allow text-white hover:opacity-90 dark:text-brand-ink',
-          secondary: 'border border-line bg-surface text-ink hover:bg-surface-2',
+          primary: 'bg-ink text-white shadow-card hover:bg-ink/85',
+          allow: 'bg-allow text-white shadow-card hover:bg-allow/90',
+          secondary: 'border border-line bg-surface text-ink shadow-card hover:bg-surface-2',
           ghost: 'text-ink-2 hover:bg-surface-2 hover:text-ink',
           danger: 'bg-deny text-white hover:opacity-90',
         }[variant],
@@ -48,10 +48,31 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div {...props} className={clsx('rounded-2xl border border-line bg-surface shadow-card', className)} />;
 }
 
-export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
+export function SectionTitle({ children, action, step }: { children: ReactNode; action?: ReactNode; step?: number }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="text-sm font-semibold tracking-wide text-ink-2 uppercase">{children}</h2>
+      <h2 className="flex items-center gap-2 text-[15px] font-semibold text-ink">
+        {step !== undefined && (
+          <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-soft text-xs font-semibold text-brand" aria-hidden="true">
+            {step}
+          </span>
+        )}
+        {children}
+      </h2>
+      {action}
+    </div>
+  );
+}
+
+// The title block at the top of every app page.
+export function PageHeader({ title, description, action, children }: { title: ReactNode; description?: ReactNode; action?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="max-w-3xl min-w-0">
+        <h1 className="text-[1.75rem] leading-tight font-semibold tracking-tight">{title}</h1>
+        {description && <p className="mt-2 text-[15px] leading-relaxed text-ink-2">{description}</p>}
+        {children}
+      </div>
       {action}
     </div>
   );
@@ -69,7 +90,7 @@ export function Chip({ tone = 'neutral', children, className }: { tone?: Tone; c
           ask: 'bg-ask-soft text-ask',
           deny: 'bg-deny-soft text-deny',
           ai: 'bg-ai-soft text-ai',
-          neutral: 'bg-surface-2 text-ink-2',
+          neutral: 'bg-surface-2 text-ink-2 ring-1 ring-line ring-inset',
         }[tone],
         className,
       )}
